@@ -382,8 +382,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Rust
         run: |
-          rustup update stable
-          rustup default stable
+          rustup update nightly
+          rustup default nightly
           rustup target add "$TARGET"
       - uses: Swatinem/rust-cache@v2
       - name: 'WASI only: crates without feature toggle'
