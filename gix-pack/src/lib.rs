@@ -47,6 +47,7 @@ pub mod multi_index;
 ///
 pub mod verify;
 
+#[cfg(not(all(target_os = "wasi", target_env = "p2")))]
 mod mmap {
     use std::path::Path;
 

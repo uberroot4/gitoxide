@@ -39,6 +39,18 @@ impl Default for Capabilities {
     }
 }
 
+#[cfg(all(target_os = "wasi", target_env = "p2"))]
+impl Default for Capabilities {
+    fn default() -> Self {
+        Capabilities {
+            precompose_unicode: false,
+            ignore_case: true,
+            executable_bit: false,
+            symlink: true,
+        }
+    }
+}
+
 impl Capabilities {
     /// try to determine all values in this context by probing them in the given `git_dir`, which
     /// should be on the file system the git repository is located on.

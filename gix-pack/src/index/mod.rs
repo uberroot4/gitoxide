@@ -75,7 +75,7 @@ macro_rules! izip {
             )
     };
 }
-
+#[cfg(not(all(target_os = "wasi", target_env = "p2")))]
 use memmap2::Mmap;
 
 /// The version of an index file
@@ -108,6 +108,9 @@ const FAN_LEN: usize = 256;
 
 /// A representation of a pack index file
 pub struct File {
+    #[cfg(all(target_os = "wasi", target_env = "p2"))]
+    data: Vec<u8>,
+    #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
     data: Mmap,
     path: std::path::PathBuf,
     version: Version,

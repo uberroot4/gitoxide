@@ -49,10 +49,19 @@ impl TryFrom<&Path> for File {
     type Error = Error;
 
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
+        #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
         let data = crate::mmap::read_only(path).map_err(|source| Error::Io {
             source,
             path: path.to_owned(),
         })?;
+        #[cfg(all(target_os = "wasi", target_env = "p2"))]
+        let data = {
+            use std::io::Read;
+            let mut file = std::fs::File::open(path).unwrap();
+            let mut bytes = Vec::new();
+            file.read_to_end(&mut bytes).unwrap();
+            bytes
+        };
 
         const TRAILER_LEN: usize = gix_hash::Kind::shortest().len_in_bytes(); /* trailing hash */
         if data.len()

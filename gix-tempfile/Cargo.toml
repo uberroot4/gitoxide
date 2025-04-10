@@ -49,6 +49,7 @@ signals = ["dep:signal-hook", "dep:signal-hook-registry"]
 ## Use a high-performance concurrent hashmap implementation for optimal performance with less contention if there are many tempfiles opening at the same time.
 ## It also allows to potentially cleanup more tempfiles in a signal handler as the hashmap can be partially locked.
 hp-hashmap = ["dep:dashmap"]
+nightly = ["tempfile/nightly"]
 
 [target.'cfg(not(windows))'.dependencies]
 libc = { version = "0.2.98", default-features = false }

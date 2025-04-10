@@ -3,6 +3,7 @@
 //! Note that detection methods are educated guesses using the presence of files, without looking too much into the details.
 #![deny(missing_docs, rust_2018_idioms)]
 #![forbid(unsafe_code)]
+#![cfg_attr(all(target_os = "wasi"), feature(wasip2))]
 
 /// The name of the `.git` directory.
 pub const DOT_GIT_DIR: &str = ".git";

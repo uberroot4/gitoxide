@@ -1,6 +1,8 @@
 //! A crate with file-system specific utilities.
 #![deny(rust_2018_idioms, missing_docs)]
 #![forbid(unsafe_code)]
+#![cfg_attr(all(target_os = "wasi"), feature(wasi_ext))]
+#![cfg_attr(all(target_os = "wasi"), feature(wasip2))]
 
 use std::path::PathBuf;
 

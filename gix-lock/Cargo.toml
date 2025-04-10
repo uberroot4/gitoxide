@@ -11,6 +11,9 @@ edition = "2021"
 include = ["src/**/*", "LICENSE-*", "README.md"]
 rust-version = "1.70"
 
+[features]
+nightly = ["tempfile/nightly"]
+
 [lib]
 doctest = false
 test = true

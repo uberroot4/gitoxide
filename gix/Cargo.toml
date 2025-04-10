@@ -21,7 +21,13 @@ path = "examples/clone.rs"
 required-features = ["blocking-network-client"]
 
 [features]
-
+wasm = [
+    "gix-pack/wasm",
+    "gix-diff/wasm",
+    "gix-tempfile/nightly",
+    "gix-odb/nightly",
+    "gix-lock/nightly",
+]
 default = ["max-performance-safe", "comfort", "basic", "extras"]
 
 #! There are various categories of features which help to optimize performance and build times. `gix` comes with 'batteries included' and everything is
