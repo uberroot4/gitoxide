@@ -24,11 +24,7 @@ jobs:
   pure-rust-build:
     runs-on: ubuntu-latest
 
-    #    container: debian:stable-slim
-    container:
-      image: rust-ci:1-alpine3.21
-      volumes:
-        - /cache:/opt/hostedtoolcache # this is where Runner store their cache default
+    container: debian:stable-slim
 
     steps:
       - uses: actions/checkout@v4
