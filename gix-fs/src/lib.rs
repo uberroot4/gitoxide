@@ -2,7 +2,7 @@
 #![deny(rust_2018_idioms, missing_docs)]
 #![forbid(unsafe_code)]
 #![cfg_attr(all(target_os = "wasi"), feature(wasi_ext))]
-#![cfg_attr(all(target_os = "wasi"), feature(wasip2))]
+#![cfg_attr(all(target_os = "wasi", target_env = "p2"), feature(wasip2))]
 
 use std::path::PathBuf;
 

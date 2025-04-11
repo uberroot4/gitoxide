@@ -48,7 +48,7 @@
 //! </details>
 #![deny(missing_docs, rust_2018_idioms)]
 #![cfg_attr(not(test), forbid(unsafe_code))]
-#![cfg_attr(all(target_os = "wasi"), feature(wasip2))]
+#![cfg_attr(all(target_os = "wasi", target_env = "p2"), feature(wasip2))]
 
 /// A dummy type to represent path specs and help finding all spots that take path specs once it is implemented.
 mod convert;
