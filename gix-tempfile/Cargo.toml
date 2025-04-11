@@ -34,7 +34,7 @@ test = true
 gix-fs = { version = "^0.14.0", path = "../gix-fs" }
 parking_lot = "0.12.1"
 dashmap = { version = "6.0.1", optional = true }
-once_cell = { version = "1.8.0", default-features = false, features = ["race", "std"] }
+once_cell = { version = "1.21.3", default-features = false, features = ["race", "std"] }
 
 signal-hook = { version = "0.3.9", default-features = false, optional = true }
 signal-hook-registry = { version = "1.4.0", optional = true }
@@ -42,10 +42,10 @@ signal-hook-registry = { version = "1.4.0", optional = true }
 document-features = { version = "0.2.0", optional = true }
 
 [target.'cfg(not(all(target_os = "wasi", target_env = "p2")))'.dependencies]
-tempfile = "3.10.0"
+tempfile = "3.19.1"
 
 [target.'cfg(all(target_os = "wasi", target_env = "p2"))'.dependencies]
-tempfile = {version = "3.10.0", features = ["nightly"]}
+tempfile = {version = "3.19.1", features = ["nightly"]}
 
 [features]
 default = ["hp-hashmap"]
