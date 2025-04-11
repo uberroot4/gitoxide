@@ -136,6 +136,7 @@ jobs:
       image: rust-ci:1-alpine3.21
       volumes:
         - /cache:/opt/hostedtoolcache # this is where Runner store their cache default
+
     strategy:
       matrix:
 #        target: [ wasm32-unknown-unknown, wasm32-wasip1, wasm32-wasip2 ]
@@ -168,9 +169,6 @@ jobs:
 #            sh -s -- -y --profile minimal
       - name: Install Rust
         run: |
-#          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
-#            sh -s -- -y --profile minimal
-#          . "$HOME/.cargo/env"
           rustup update nightly
           rustup default nightly
           rustup target add "$TARGET"
