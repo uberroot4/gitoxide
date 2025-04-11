@@ -34,7 +34,7 @@ jobs:
             curl
             gcc  # rustc calls gcc to invoke the linker.
             libc-dev  # rustc, in the toolchain we are using, dynamically links to the system libc.
-            node
+            nodejs
           )
           apt-get update
           apt-get install --no-install-recommends -y -- "${prerequisites[@]}"
