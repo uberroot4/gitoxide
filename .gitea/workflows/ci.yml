@@ -37,6 +37,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ gitea.ref }}
       - name: Install Rust
         run: |
           rustup update nightly
