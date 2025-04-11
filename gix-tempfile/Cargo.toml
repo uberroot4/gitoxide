@@ -35,12 +35,17 @@ gix-fs = { version = "^0.14.0", path = "../gix-fs" }
 parking_lot = "0.12.1"
 dashmap = { version = "6.0.1", optional = true }
 once_cell = { version = "1.8.0", default-features = false, features = ["race", "std"] }
-tempfile = "3.10.0"
 
 signal-hook = { version = "0.3.9", default-features = false, optional = true }
 signal-hook-registry = { version = "1.4.0", optional = true }
 
 document-features = { version = "0.2.0", optional = true }
+
+[target.'cfg(not(all(target_os = "wasi", target_env = "p2")))'.dependencies]
+tempfile = "3.10.0"
+
+[target.'cfg(all(target_os = "wasi", target_env = "p2"))'.dependencies]
+tempfile = {version = "3.10.0", features = ["nightly"]}
 
 [features]
 default = ["hp-hashmap"]
@@ -49,7 +54,6 @@ signals = ["dep:signal-hook", "dep:signal-hook-registry"]
 ## Use a high-performance concurrent hashmap implementation for optimal performance with less contention if there are many tempfiles opening at the same time.
 ## It also allows to potentially cleanup more tempfiles in a signal handler as the hashmap can be partially locked.
 hp-hashmap = ["dep:dashmap"]
-nightly = ["tempfile/nightly"]
 
 [target.'cfg(not(windows))'.dependencies]
 libc = { version = "0.2.98", default-features = false }

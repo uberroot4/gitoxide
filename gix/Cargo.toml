@@ -23,10 +23,7 @@ required-features = ["blocking-network-client"]
 [features]
 wasm = [
     "gix-pack/wasm",
-    "gix-diff/wasm",
-    "gix-tempfile/nightly",
-    "gix-odb/nightly",
-    "gix-lock/nightly",
+    "gix-diff/wasm"
 ]
 default = ["max-performance-safe", "comfort", "basic", "extras"]
 
