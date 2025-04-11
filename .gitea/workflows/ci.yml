@@ -139,8 +139,8 @@ jobs:
 
     strategy:
       matrix:
-#        target: [ wasm32-unknown-unknown, wasm32-wasip1, wasm32-wasip2 ]
-        target: [ wasm32-wasip2 ]
+        target: [ wasm32-unknown-unknown, wasm32-wasip1, wasm32-wasip2 ]
+#        target: [ wasm32-wasip2 ]
 
     env:
       TARGET: ${{ matrix.target }}
