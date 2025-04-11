@@ -29,10 +29,15 @@ jobs:
     steps:
       - name: Prerequisites
         run: |
-          apk update
-          apk add --no-cache ca-certificates curl gcc libc-dev nodejs
-#          nodejs zstd make cmake gcc g++ bash git musl-dev tar
-#          apk add "${prerequisites[@]}"
+          prerequisites=(
+            ca-certificates
+            curl
+            gcc  # rustc calls gcc to invoke the linker.
+            libc-dev  # rustc, in the toolchain we are using, dynamically links to the system libc.
+            node
+          )
+          apt-get update
+          apt-get install --no-install-recommends -y -- "${prerequisites[@]}"
         shell: bash  # This step needs `bash`, and the default in container jobs is `sh`.
       - uses: actions/checkout@v4
         with:
