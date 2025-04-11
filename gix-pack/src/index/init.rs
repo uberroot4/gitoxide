@@ -30,19 +30,10 @@ impl index::File {
     }
 
     fn at_inner(path: &Path, object_hash: gix_hash::Kind) -> Result<index::File, Error> {
-        #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
         let data = crate::mmap::read_only(path).map_err(|source| Error::Io {
             source,
             path: path.to_owned(),
         })?;
-        #[cfg(all(target_os = "wasi", target_env = "p2"))]
-        let data = {
-            use std::io::Read;
-            let mut file = std::fs::File::open(path).unwrap();
-            let mut bytes = Vec::new();
-            file.read_to_end(&mut bytes).unwrap();
-            bytes
-        };
         let idx_len = data.len();
         let hash_len = object_hash.len_in_bytes();
 

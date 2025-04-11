@@ -47,10 +47,10 @@ pub mod multi_index;
 ///
 pub mod verify;
 
-#[cfg(not(all(target_os = "wasi", target_env = "p2")))]
 mod mmap {
     use std::path::Path;
 
+    #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
     pub fn read_only(path: &Path) -> std::io::Result<memmap2::Mmap> {
         let file = std::fs::File::open(path)?;
         // SAFETY: we have to take the risk of somebody changing the file underneath. Git never writes into the same file.
@@ -58,6 +58,15 @@ mod mmap {
         unsafe {
             memmap2::MmapOptions::new().map_copy_read_only(&file)
         }
+    }
+
+    #[cfg(all(target_os = "wasi", target_env = "p2"))]
+    pub fn read_only(path: &Path) -> std::io::Result<Vec<u8>> {
+        use std::io::Read;
+        let mut file = std::fs::File::open(path).unwrap();
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes).unwrap();
+        Ok(bytes)
     }
 }
 

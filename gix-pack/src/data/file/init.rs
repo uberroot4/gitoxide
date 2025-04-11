@@ -16,19 +16,10 @@ impl data::File {
         use crate::data::header::N32_SIZE;
         let hash_len = object_hash.len_in_bytes();
 
-        #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
         let data = crate::mmap::read_only(path).map_err(|e| data::header::decode::Error::Io {
             source: e,
             path: path.to_owned(),
         })?;
-        #[cfg(all(target_os = "wasi", target_env = "p2"))]
-        let data = {
-            use std::io::Read;
-            let mut file = std::fs::File::open(path).unwrap();
-            let mut bytes = Vec::new();
-            file.read_to_end(&mut bytes).unwrap();
-            bytes
-        };
         let pack_len = data.len();
         if pack_len < N32_SIZE * 3 + hash_len {
             return Err(data::header::decode::Error::Corrupt(format!(
