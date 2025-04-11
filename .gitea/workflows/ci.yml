@@ -142,6 +142,11 @@ jobs:
       TARGET: ${{ matrix.target }}
 
     steps:
+      - name: Prerequisites
+        run: |
+          apk update
+          apk add --no-cache nodejs
+          # zstd make cmake gcc g++ bash git musl-dev tar
       - uses: actions/checkout@v4
         with:
           ref: ${{ gitea.ref }}
