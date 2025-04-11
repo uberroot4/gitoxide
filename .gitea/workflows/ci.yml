@@ -132,7 +132,10 @@ jobs:
     name: WebAssembly
 
     runs-on: ubuntu-latest
-
+    container:
+      image: rust-ci:1-alpine3.21
+      volumes:
+        - /cache:/opt/hostedtoolcache # this is where Runner store their cache default
     strategy:
       matrix:
 #        target: [ wasm32-unknown-unknown, wasm32-wasip1, wasm32-wasip2 ]
@@ -142,20 +145,20 @@ jobs:
       TARGET: ${{ matrix.target }}
 
     steps:
-      - name: Prerequisites
-        run: |
-          prerequisites=(
-            ca-certificates
-            curl
-            gcc  # rustc calls gcc to invoke the linker.
-            libc-dev  # rustc, in the toolchain we are using, dynamically links to the system libc.
-            nodejs
-          )
-          apt-get update
-          apt-get install --no-install-recommends -y -- "${prerequisites[@]}"
-#          apk update
-#          apk add --no-cache nodejs
-          # zstd make cmake gcc g++ bash git musl-dev tar
+#      - name: Prerequisites
+#        run: |
+#          prerequisites=(
+#            ca-certificates
+#            curl
+#            gcc  # rustc calls gcc to invoke the linker.
+#            libc-dev  # rustc, in the toolchain we are using, dynamically links to the system libc.
+#            nodejs
+#          )
+#          apt-get update
+#          apt-get install --no-install-recommends -y -- "${prerequisites[@]}"
+##          apk update
+##          apk add --no-cache nodejs
+#          # zstd make cmake gcc g++ bash git musl-dev tar
       - uses: actions/checkout@v4
         with:
           ref: ${{ gitea.ref }}
@@ -165,8 +168,9 @@ jobs:
 #            sh -s -- -y --profile minimal
       - name: Install Rust
         run: |
-          curl https://sh.rustup.rs -sSf | sh
-          . "$HOME/.cargo/env"
+#          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
+#            sh -s -- -y --profile minimal
+#          . "$HOME/.cargo/env"
           rustup update nightly
           rustup default nightly
           rustup target add "$TARGET"
