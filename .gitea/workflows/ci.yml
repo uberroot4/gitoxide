@@ -165,9 +165,7 @@ jobs:
 #            sh -s -- -y --profile minimal
       - name: Install Rust
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs
-#          |
-#            sh -s -- -y --profile minimal
+          curl https://sh.rustup.rs -sSf | sh
           . "$HOME/.cargo/env"
           rustup update nightly
           rustup default nightly
