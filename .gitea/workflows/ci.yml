@@ -27,9 +27,6 @@ jobs:
     container: debian:stable-slim
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ gitea.ref }}
       - name: Prerequisites
         run: |
           apk update
@@ -37,6 +34,9 @@ jobs:
 #          nodejs zstd make cmake gcc g++ bash git musl-dev tar
 #          apk add "${prerequisites[@]}"
         shell: bash  # This step needs `bash`, and the default in container jobs is `sh`.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ gitea.ref }}
       - name: Verify that we are in an environment with limited dev tools
         run: |
           set -x
