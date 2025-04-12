@@ -62,7 +62,18 @@ impl File {
             let mut file = std::fs::File::open(&path)?;
             // SAFETY: we have to take the risk of somebody changing the file underneath. Git never writes into the same file.
             #[allow(unsafe_code)]
+            #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
             let data = unsafe { memmap2::MmapOptions::new().map_copy_read_only(&file)? };
+
+            #[cfg(all(target_os = "wasi", target_env = "p2"))]
+            let data = {
+                use std::io::Read;
+                let mut bytes = Vec::new();
+                let mut f2 = std::fs::File::open(&path)?;
+                f2.read_to_end(&mut bytes)?;
+                bytes.shrink_to_fit();
+                bytes
+            };
 
             if !skip_hash {
                 // Note that even though it's trivial to offload this into a thread, which is worth it for all but the smallest
@@ -90,8 +101,10 @@ impl File {
                     .map_err(decode::Error::from)?;
                 }
             }
-
-            (data, filetime::FileTime::from_last_modification_time(&file.metadata()?))
+            #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
+            { (data, filetime::FileTime::from_last_modification_time(&file.metadata()?)) }
+            #[cfg(all(target_os = "wasi", target_env = "p2"))]
+            (data, filetime::FileTime::zero())
         };
 
         let (state, checksum) = State::from_bytes(&data, mtime, object_hash, options)?;

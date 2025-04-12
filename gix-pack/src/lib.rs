@@ -63,9 +63,10 @@ mod mmap {
     #[cfg(all(target_os = "wasi", target_env = "p2"))]
     pub fn read_only(path: &Path) -> std::io::Result<Vec<u8>> {
         use std::io::Read;
-        let mut file = std::fs::File::open(path).unwrap();
+        let mut file = std::fs::File::open(path)?;
         let mut bytes = Vec::new();
-        file.read_to_end(&mut bytes).unwrap();
+        file.read_to_end(&mut bytes)?;
+        bytes.shrink_to_fit();
         Ok(bytes)
     }
 }
