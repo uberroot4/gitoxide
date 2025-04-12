@@ -34,7 +34,14 @@ impl Search {
         );
 
         for path in files.into_iter() {
-            group.add_patterns_file(path.into(), true, None, buf, collection, true /* allow macros */)?;
+            /*
+             * Environments likes WASM might not have /etc/gitattributes existing, without the check it will fail later
+             * For all other environments it should not make any difference
+            */
+            let path = path.into();
+            if path.exists() {
+                group.add_patterns_file(path, true, None, buf, collection, true /* allow macros */)?;
+            }
         }
         Ok(group)
     }
