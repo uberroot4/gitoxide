@@ -54,16 +54,16 @@ impl Metadata {
     pub fn modified(&self) -> Option<SystemTime> {
         #[cfg(not(windows))]
         {
-            #[cfg(not(any(target_os = "aix", target_os = "hurd", all(target_os = "wasi", target_env = "p2"))))]
+            #[cfg(not(any(target_os = "aix", target_os = "hurd", all(target_os = "wasi"))))]
             let seconds = self.0.st_mtime;
-            #[cfg(any(target_os = "aix", target_os = "hurd", all(target_os = "wasi", target_env = "p2")))]
+            #[cfg(any(target_os = "aix", target_os = "hurd", all(target_os = "wasi")))]
             let seconds = self.0.st_mtim.tv_sec;
 
-            #[cfg(not(any(target_os = "netbsd", target_os = "aix", target_os = "hurd", all(target_os = "wasi", target_env = "p2"))))]
+            #[cfg(not(any(target_os = "netbsd", target_os = "aix", target_os = "hurd", all(target_os = "wasi"))))]
             let nanoseconds = self.0.st_mtime_nsec;
             #[cfg(target_os = "netbsd")]
             let nanoseconds = self.0.st_mtimensec;
-            #[cfg(any(target_os = "aix", target_os = "hurd", all(target_os = "wasi", target_env = "p2")))]
+            #[cfg(any(target_os = "aix", target_os = "hurd", all(target_os = "wasi")))]
             let nanoseconds = self.0.st_mtim.tv_nsec;
 
             // All operating systems treat the seconds as offset from unix epoch, hence it must
@@ -83,16 +83,16 @@ impl Metadata {
     pub fn created(&self) -> Option<SystemTime> {
         #[cfg(not(windows))]
         {
-            #[cfg(not(any(target_os = "aix", target_os = "hurd", all(target_os = "wasi", target_env = "p2"))))]
+            #[cfg(not(any(target_os = "aix", target_os = "hurd", all(target_os = "wasi"))))]
             let seconds = self.0.st_ctime;
-            #[cfg(any(target_os = "aix", target_os = "hurd", all(target_os = "wasi", target_env = "p2")))]
+            #[cfg(any(target_os = "aix", target_os = "hurd", all(target_os = "wasi")))]
             let seconds = self.0.st_ctim.tv_sec;
 
-            #[cfg(not(any(target_os = "netbsd", target_os = "aix", target_os = "hurd", all(target_os = "wasi", target_env = "p2"))))]
+            #[cfg(not(any(target_os = "netbsd", target_os = "aix", target_os = "hurd", all(target_os = "wasi"))))]
             let nanoseconds = self.0.st_ctime_nsec;
             #[cfg(target_os = "netbsd")]
             let nanoseconds = self.0.st_ctimensec;
-            #[cfg(any(target_os = "aix", target_os = "hurd", all(target_os = "wasi", target_env = "p2")))]
+            #[cfg(any(target_os = "aix", target_os = "hurd", all(target_os = "wasi")))]
             let nanoseconds = self.0.st_ctim.tv_nsec;
 
             // All operating systems treat the seconds as offset from unix epoch, hence it must

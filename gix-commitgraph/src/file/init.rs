@@ -65,9 +65,9 @@ impl File {
     /// Note that `path` is only used for verification of the hash its basename contains, but otherwise
     /// is not of importance.
     pub fn new(
-        #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
+        #[cfg(not(all(target_os = "wasi")))]
         data: memmap2::Mmap,
-        #[cfg(all(target_os = "wasi", target_env = "p2"))]
+        #[cfg(all(target_os = "wasi"))]
         data: Vec<u8>,
         path: PathBuf
     ) -> Result<File, Error> {
@@ -246,11 +246,11 @@ impl TryFrom<&Path> for File {
             .and_then(|file| {
                 // SAFETY: we have to take the risk of somebody changing the file underneath. Git never writes into the same file.
                 #[allow(unsafe_code)]
-                #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
+                #[cfg(not(all(target_os = "wasi")))]
                 unsafe {
                     memmap2::MmapOptions::new().map_copy_read_only(&file)
                 }
-                #[cfg(all(target_os = "wasi", target_env = "p2"))]
+                #[cfg(all(target_os = "wasi"))]
                 {
                     use std::io::Read;
                     let mut f2 = std::fs::File::open(path)?;

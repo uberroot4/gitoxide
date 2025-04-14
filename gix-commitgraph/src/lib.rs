@@ -25,9 +25,9 @@ pub struct File {
     base_graph_count: u8,
     base_graphs_list_offset: Option<usize>,
     commit_data_offset: usize,
-    #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
+    #[cfg(not(all(target_os = "wasi")))]
     data: memmap2::Mmap,
-    #[cfg(all(target_os = "wasi", target_env = "p2"))]
+    #[cfg(all(target_os = "wasi"))]
     data: Vec<u8>,
     extra_edges_list_range: Option<std::ops::Range<usize>>,
     fan: [u32; file::FAN_LEN],

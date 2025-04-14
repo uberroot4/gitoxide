@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-#[cfg(not(all(target_os = "wasi", target_env = "p2")))]
+#[cfg(not(all(target_os = "wasi")))]
 use memmap2::Mmap;
 
 /// Known multi-index file versions
@@ -20,9 +20,9 @@ pub type EntryIndex = u32;
 /// A representation of an index file for multiple packs at the same time, typically stored in a file
 /// named 'multi-pack-index'.
 pub struct File {
-    #[cfg(all(target_os = "wasi", target_env = "p2"))]
+    #[cfg(all(target_os = "wasi"))]
     data: Vec<u8>,
-    #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
+    #[cfg(not(all(target_os = "wasi")))]
     data: Mmap,
     path: std::path::PathBuf,
     version: Version,

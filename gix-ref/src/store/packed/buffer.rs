@@ -10,7 +10,7 @@ impl AsRef<[u8]> for packed::Backing {
     fn as_ref(&self) -> &[u8] {
         match self {
             packed::Backing::InMemory(data) => data,
-            #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
+            #[cfg(not(all(target_os = "wasi")))]
             packed::Backing::Mapped(map) => map,
         }
     }
@@ -78,9 +78,9 @@ pub mod open {
             let backing = if std::fs::metadata(&path)?.len() <= use_memory_map_if_larger_than_bytes {
                 packed::Backing::InMemory(std::fs::read(&path)?)
             } else {
-                #[cfg(all(target_os = "wasi", target_env = "p2"))]
+                #[cfg(all(target_os = "wasi"))]
                 panic!("WASM32-WasiP2 should not come here");
-                #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
+                #[cfg(not(all(target_os = "wasi")))]
                 packed::Backing::Mapped(
                     // SAFETY: we have to take the risk of somebody changing the file underneath. Git never writes into the same file.
                     #[allow(unsafe_code)]

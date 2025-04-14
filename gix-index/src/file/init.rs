@@ -62,10 +62,10 @@ impl File {
             let mut file = std::fs::File::open(&path)?;
             // SAFETY: we have to take the risk of somebody changing the file underneath. Git never writes into the same file.
             #[allow(unsafe_code)]
-            #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
+            #[cfg(not(all(target_os = "wasi")))]
             let data = unsafe { memmap2::MmapOptions::new().map_copy_read_only(&file)? };
 
-            #[cfg(all(target_os = "wasi", target_env = "p2"))]
+            #[cfg(all(target_os = "wasi"))]
             let data = {
                 use std::io::Read;
                 let mut bytes = Vec::new();
@@ -101,9 +101,9 @@ impl File {
                     .map_err(decode::Error::from)?;
                 }
             }
-            #[cfg(not(all(target_os = "wasi", target_env = "p2")))]
+            #[cfg(not(all(target_os = "wasi")))]
             { (data, filetime::FileTime::from_last_modification_time(&file.metadata()?)) }
-            #[cfg(all(target_os = "wasi", target_env = "p2"))]
+            #[cfg(all(target_os = "wasi"))]
             (data, filetime::FileTime::zero())
         };
 

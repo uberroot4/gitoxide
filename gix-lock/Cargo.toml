@@ -20,7 +20,7 @@ gix-utils = { version = "^0.2.0", default-features = false, path = "../gix-utils
 gix-tempfile = { version = "^17.0.0", default-features = false, path = "../gix-tempfile" }
 thiserror = "2.0.0"
 
-[target.'cfg(all(target_os = "wasi", target_env = "p2"))'.dev-dependencies]
+[target.'cfg(all(target_os = "wasi"))'.dev-dependencies]
 tempfile = {version = "3.2.0", features = ["nightly"]}
 
 [dev-dependencies]
