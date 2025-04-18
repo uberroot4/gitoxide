@@ -324,7 +324,7 @@ jobs:
         with:
           tool: nextest
       - name: Test (nextest)
-        run: cargo +nightly nextest run -Zbuild-std --target $TARGET --workspace --no-fail-fast size
+        run: cargo +nightly nextest run --target $TARGET --workspace --no-fail-fast size
 
   lint:
     runs-on: ubuntu-latest
