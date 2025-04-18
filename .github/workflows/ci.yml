@@ -301,12 +301,17 @@ jobs:
   test-wasm32:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+#        target: [ wasm32-unknown-unknown, wasm32-wasip1, wasm32-wasip2 ]
+        target: [ wasm32-wasip2 ]
+
     env:
-      TARGET: wasm32-wasip2
+      TARGET: ${{ matrix.target }}
 
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@nightly
         with:
           targets: ${{ env.TARGET }}
       - uses: Swatinem/rust-cache@v2
@@ -314,7 +319,7 @@ jobs:
         with:
           tool: nextest
       - name: Test (nextest)
-        run: cargo nextest run --target $env:TARGET --workspace --no-fail-fast size
+        run: cargo nextest run --target TARGET --workspace --no-fail-fast size
 
   lint:
     runs-on: ubuntu-latest
