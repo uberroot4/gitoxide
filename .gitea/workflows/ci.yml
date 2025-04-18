@@ -164,6 +164,34 @@ jobs:
       - name: Check that tracked archives are up to date
         run: git diff --exit-code  # If this fails, the fix is usually to commit a regenerated archive.
 
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          components: clippy,rustfmt
+      - uses: extractions/setup-just@v3
+      - name: Run cargo clippy
+        run: just clippy -D warnings -A unknown-lints --no-deps
+      - name: Run cargo doc
+        run: just doc
+      - name: Run cargo fmt
+        run: cargo fmt --all -- --check
+      - name: Install cargo diet
+        env:
+          CARGO_DIET_TAG: v1.2.7
+        run: |
+          curl -LSfs "https://raw.githubusercontent.com/the-lean-crate/cargo-diet/refs/tags/$CARGO_DIET_TAG/ci/install.sh" |
+            sh -s -- --git the-lean-crate/cargo-diet --target x86_64-unknown-linux-musl --tag "$CARGO_DIET_TAG"
+      - name: Run cargo diet
+        run: just check-size
+        # Let's not fail CI for this, it will fail locally often enough, and a crate a little bigger
+        # than allows is no problem either if it comes to that.
+        continue-on-error: true
+
   wasm:
     name: WebAssembly
 
