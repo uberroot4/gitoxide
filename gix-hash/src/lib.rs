@@ -9,7 +9,7 @@
 #![cfg_attr(all(doc, feature = "document-features"), feature(doc_cfg, doc_auto_cfg))]
 #![deny(missing_docs, rust_2018_idioms, unsafe_code)]
 #![cfg_attr(all(target_os = "wasi", target_env = "p2"), feature(wasip2))]
-#![cfg_attr(all(target_os = "wasi"), feature(wasi_ext))]
+#![cfg_attr(target_os = "wasi", feature(wasi_ext))]
 
 #[path = "oid.rs"]
 mod borrowed;
