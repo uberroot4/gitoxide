@@ -299,7 +299,7 @@ jobs:
 #        run: cargo nextest run --target $env:TARGET --workspace --no-fail-fast size
 
   test-wasm32:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     env:
       TARGET: wasm32-wasip2
