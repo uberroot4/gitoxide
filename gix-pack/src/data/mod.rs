@@ -6,7 +6,7 @@ pub type Offset = u64;
 
 /// An identifier to uniquely identify all packs loaded within a known context or namespace.
 pub type Id = u32;
-#[cfg(not(all(target_os = "wasi")))]
+#[cfg(not(target_os = "wasi"))]
 use memmap2::Mmap;
 
 /// An representing an full- or delta-object within a pack
@@ -61,9 +61,9 @@ pub enum Version {
 
 /// A pack data file
 pub struct File {
-    #[cfg(all(target_os = "wasi"))]
+    #[cfg(target_os = "wasi")]
     data: Vec<u8>,
-    #[cfg(not(all(target_os = "wasi")))]
+    #[cfg(not(target_os = "wasi"))]
     data: Mmap,
     path: std::path::PathBuf,
     /// A value to represent this pack uniquely when used with cache lookup, or a way to identify this pack by its location on disk.

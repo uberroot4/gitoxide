@@ -11,7 +11,7 @@ pub fn create(original: &Path, link: &Path) -> io::Result<()> {
 /// Create a new symlink at `link` which points to `original`.
 ///
 /// Note that `original` doesn't have to exist.
-#[cfg(all(target_os = "wasi"))]
+#[cfg(target_os = "wasi")]
 pub fn create(original: &Path, link: &Path) -> io::Result<()> {
     let file: std::fs::File = std::fs::File::open(original)?;
     std::os::wasi::fs::symlink(original, &file, link)

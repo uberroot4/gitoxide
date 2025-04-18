@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use gix_hash::ObjectId;
 use gix_object::bstr::{BStr, BString};
-#[cfg(not(all(target_os = "wasi")))]
+#[cfg(not(target_os = "wasi"))]
 use memmap2::Mmap;
 
 use crate::{file, transaction::RefEdit, FullNameRef, Namespace};
@@ -12,7 +12,7 @@ enum Backing {
     /// The buffer is loaded entirely in memory, along with the `offset` to the first record past the header.
     InMemory(Vec<u8>),
     /// The buffer is mapping the file on disk, along with the offset to the first record past the header
-    #[cfg(not(all(target_os = "wasi")))]
+    #[cfg(not(target_os = "wasi"))]
     Mapped(Mmap),
 }
 

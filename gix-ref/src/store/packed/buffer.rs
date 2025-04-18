@@ -10,7 +10,7 @@ impl AsRef<[u8]> for packed::Backing {
     fn as_ref(&self) -> &[u8] {
         match self {
             packed::Backing::InMemory(data) => data,
-            #[cfg(not(all(target_os = "wasi")))]
+            #[cfg(not(target_os = "wasi"))]
             packed::Backing::Mapped(map) => map,
         }
     }
@@ -74,13 +74,12 @@ pub mod open {
         /// In order to allow fast lookups and optimizations, the contents of the packed refs must be sorted.
         /// If that's not the case, they will be sorted on the fly with the data being written into a memory buffer.
         pub fn open(path: PathBuf, use_memory_map_if_larger_than_bytes: u64) -> Result<Self, Error> {
-            println!("std::fs::metadata(&path)?.len() <= use_memory_map_if_larger_than_bytes {:?}", std::fs::metadata(&path)?.len() <= use_memory_map_if_larger_than_bytes);
             let backing = if std::fs::metadata(&path)?.len() <= use_memory_map_if_larger_than_bytes {
                 packed::Backing::InMemory(std::fs::read(&path)?)
             } else {
-                #[cfg(all(target_os = "wasi"))]
+                #[cfg(target_os = "wasi")]
                 panic!("WASM32-WasiP2 should not come here");
-                #[cfg(not(all(target_os = "wasi")))]
+                #[cfg(not(target_os = "wasi"))]
                 packed::Backing::Mapped(
                     // SAFETY: we have to take the risk of somebody changing the file underneath. Git never writes into the same file.
                     #[allow(unsafe_code)]

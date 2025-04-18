@@ -50,7 +50,7 @@ pub mod verify;
 mod mmap {
     use std::path::Path;
 
-    #[cfg(not(all(target_os = "wasi")))]
+    #[cfg(not(target_os = "wasi"))]
     pub fn read_only(path: &Path) -> std::io::Result<memmap2::Mmap> {
         let file = std::fs::File::open(path)?;
         // SAFETY: we have to take the risk of somebody changing the file underneath. Git never writes into the same file.
@@ -60,7 +60,7 @@ mod mmap {
         }
     }
 
-    #[cfg(all(target_os = "wasi"))]
+    #[cfg(target_os = "wasi")]
     pub fn read_only(path: &Path) -> std::io::Result<Vec<u8>> {
         use std::io::Read;
         let mut file = std::fs::File::open(path)?;

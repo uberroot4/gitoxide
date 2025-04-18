@@ -39,7 +39,7 @@ impl Default for Capabilities {
     }
 }
 
-#[cfg(all(target_os = "wasi"))]
+#[cfg(target_os = "wasi")]
 impl Default for Capabilities {
     fn default() -> Self {
         Capabilities {
