@@ -47,7 +47,7 @@
 //! ever get into a code-path which does panic though.
 //! </details>
 #![deny(missing_docs, rust_2018_idioms)]
-#![cfg_attr(not(test), forbid(unsafe_code))]
+#![cfg_attr(not(test), deny(unsafe_code))]
 #![cfg_attr(all(target_os = "wasi", target_env = "p2"), feature(wasip2))]
 #![cfg_attr(target_os = "wasi", feature(wasi_ext))]
 
@@ -64,3 +64,7 @@ pub use realpath::function::{realpath, realpath_opts};
 
 /// Information about the environment in terms of locations of resources.
 pub mod env;
+
+///
+pub mod relative_path;
+pub use relative_path::types::RelativePath;
