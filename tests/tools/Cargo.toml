@@ -25,26 +25,31 @@ default = []
 xz = ["dep:xz2"]
 
 [dependencies]
-gix-lock = "14.0.0"
-gix-discover = "0.32.0"
-gix-worktree = "0.34.0"
-gix-fs = "0.11"
-gix-tempfile = { version = "^14.0.0", default-features = false, features = ["signals"] }
+gix-lock = {path = "../../gix-lock"}
+gix-discover = {path = "../../gix-discover"}
+gix-worktree = {path = "../../gix-worktree"}
+gix-fs = {path = "../../gix-fs"}
 
 winnow = { version = "0.7.6", features = ["simd"] }
 fastrand = "2.0.0"
 bstr = { version = "1.12.0", default-features = false }
 crc = "3.0.0"
 once_cell = "1.21.3"
-tempfile = "3.19.1"
 fs_extra = "1.2.0"
 parking_lot = { version = "0.12.0" }
 is_ci = "1.1.1"
-io-close = "0.3.7"
 tar = { version = "0.4.38", default-features = false }
 xz2 = { version = "0.1.6", optional = true }
 
 document-features = { version = "0.2.1", optional = true }
+[target.'cfg(any(target_arch = "wasm32", target_os = "wasi"))'.dependencies]
+gix-tempfile = { path = "../../gix-tempfile", default-features = false }
+tempfile = {version = "3.19.1", features = ["nightly"]}
+
+[target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "wasi")))'.dependencies]
+gix-tempfile = { path = "../../gix-tempfile", default-features = false, features = ["signals"] }
+io-close = "0.3.7"
+tempfile = "3.19.1"
 
 [dev-dependencies]
 serial_test = { version = "3.1.0", default-features = false }

@@ -14,6 +14,7 @@
 )]
 #![cfg_attr(all(doc, feature = "document-features"), feature(doc_cfg, doc_auto_cfg))]
 #![deny(missing_docs, rust_2018_idioms, unsafe_code)]
+#![cfg_attr(all(target_os = "wasi", target_env = "p2"), feature(wasip2))]
 
 use std::path::Path;
 
@@ -25,9 +26,9 @@ pub struct File {
     base_graph_count: u8,
     base_graphs_list_offset: Option<usize>,
     commit_data_offset: usize,
-    #[cfg(not(target_os = "wasi"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "wasi")))]
     data: memmap2::Mmap,
-    #[cfg(target_os = "wasi")]
+    #[cfg(any(target_arch = "wasm32", target_os = "wasi"))]
     data: Vec<u8>,
     extra_edges_list_range: Option<std::ops::Range<usize>>,
     fan: [u32; file::FAN_LEN],

@@ -7,6 +7,7 @@
 )]
 #![cfg_attr(all(doc, feature = "document-features"), feature(doc_cfg, doc_auto_cfg))]
 #![deny(missing_docs)]
+#![cfg_attr(all(target_os = "wasi", target_env = "p2"), feature(wasip2))]
 
 use std::{
     collections::BTreeMap,
@@ -20,6 +21,7 @@ use std::{
 
 pub use bstr;
 use bstr::ByteSlice;
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "wasi")))]
 use io_close::Close;
 pub use is_ci;
 pub use once_cell;
@@ -220,7 +222,7 @@ pub fn spawn_git_daemon(working_dir: impl AsRef<Path>) -> std::io::Result<GitDae
 
     let server_addr = addr_at(free_port);
     // TODO(deps): Upgrading dependencies will require changing `Exponential` to `Quadratic`.
-    for time in gix_lock::backoff::Exponential::default_with_random() {
+    for time in gix_lock::backoff::Quadratic::default_with_random() {
         std::thread::sleep(time);
         if std::net::TcpStream::connect(server_addr).is_ok() {
             break;
@@ -457,6 +459,7 @@ fn scripted_fixture_read_only_with_args_inner(
     args_in_hash: ArgsInHash,
 ) -> Result<PathBuf> {
     // Assure tempfiles get removed when aborting the test.
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "wasi")))]
     gix_tempfile::signal::setup(
         gix_tempfile::signal::handler::Mode::DeleteTempfilesOnTerminationAndRestoreDefaultBehaviour,
     );
@@ -767,7 +770,10 @@ fn create_archive_if_we_should(source_dir: &Path, archive: &Path, script_identit
         {
             use std::io::Write;
             archive.write_all(&buf)?;
-            archive.close()
+            #[cfg(all(not(target_arch = "wasm32"), not(target_os = "wasi")))]
+            return archive.close();
+            #[cfg(any(target_arch = "wasm32", target_os = "wasi"))]
+            Ok(())
         }
     })();
     #[cfg(not(windows))]

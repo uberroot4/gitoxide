@@ -33,6 +33,8 @@
 )]
 #![cfg_attr(all(doc, feature = "document-features"), feature(doc_cfg, doc_auto_cfg))]
 #![deny(missing_docs, rust_2018_idioms, unsafe_code)]
+#![cfg_attr(all(target_os = "wasi", target_env = "p2"), feature(wasip2))]
+#![cfg_attr(any(target_os = "wasi", target_arch = "wasm32"), feature(wasi_ext))]
 
 use std::{
     io,
@@ -112,13 +114,13 @@ pub mod registry;
 
 static NEXT_MAP_INDEX: AtomicUsize = AtomicUsize::new(0);
 static REGISTRY: Lazy<HashMap<usize, Option<ForksafeTempfile>>> = Lazy::new(|| {
-    #[cfg(feature = "signals")]
+    #[cfg(all(feature = "signals", not(target_arch = "wasm32"), not(target_os = "wasi")))]
     if signal::handler::MODE.load(std::sync::atomic::Ordering::SeqCst) != signal::handler::Mode::None as usize {
         for sig in signal_hook::consts::TERM_SIGNALS {
             // SAFETY: handlers are considered unsafe because a lot can go wrong. See `cleanup_tempfiles()` for details on safety.
             #[allow(unsafe_code)]
             unsafe {
-                #[cfg(not(windows))]
+                #[cfg(all(not(windows)))]
                 {
                     signal_hook_registry::register_sigaction(*sig, signal::handler::cleanup_tempfiles_nix)
                 }

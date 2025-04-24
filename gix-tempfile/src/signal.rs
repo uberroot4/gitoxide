@@ -48,7 +48,7 @@ pub mod handler {
     }
 
     /// On linux we can handle the actual signal as we know it.
-    #[cfg(not(windows))]
+    #[cfg(all(not(windows), not(target_arch = "wasm32"), not(target_os = "wasi")))]
     pub(crate) fn cleanup_tempfiles_nix(sig: &libc::siginfo_t) {
         crate::registry::cleanup_tempfiles_signal_safe();
         let restore_original_behaviour = Mode::DeleteTempfilesOnTerminationAndRestoreDefaultBehaviour as usize;
