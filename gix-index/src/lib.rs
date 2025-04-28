@@ -8,9 +8,9 @@
 #![cfg_attr(all(target_os = "wasi", target_env = "p2"), feature(wasip2))]
 #![cfg_attr(target_os = "wasi", feature(wasi_ext))]
 
-use bstr::{BStr, ByteSlice};
 use std::{ops::Range, path::PathBuf};
 
+use bstr::{BStr, ByteSlice};
 use filetime::FileTime;
 /// `gix_hash` is made available as it's part of the public API in various places.
 pub use gix_hash as hash;
@@ -159,10 +159,9 @@ pub struct State {
 }
 
 mod impls {
-    use crate::entry::Stage;
     use std::fmt::{Debug, Formatter};
 
-    use crate::State;
+    use crate::{entry::Stage, State};
 
     impl Debug for State {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

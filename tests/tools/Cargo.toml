@@ -3,7 +3,7 @@ lints.workspace = true
 [package]
 name = "gix-testtools"
 description = "Shared code for gitoxide crates to facilitate testing"
-version = "0.16.0"
+version = "0.16.1"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -30,7 +30,7 @@ gix-discover = {path = "../../gix-discover"}
 gix-worktree = {path = "../../gix-worktree"}
 gix-fs = {path = "../../gix-fs"}
 
-winnow = { version = "0.7.6", features = ["simd"] }
+winnow = { version = "0.7.7", features = ["simd"] }
 fastrand = "2.0.0"
 bstr = { version = "1.12.0", default-features = false }
 crc = "3.0.0"

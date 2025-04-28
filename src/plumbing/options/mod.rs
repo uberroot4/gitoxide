@@ -168,8 +168,8 @@ pub enum Subcommands {
         /// The file to create the blame information for.
         file: std::ffi::OsString,
         /// Only blame lines in the given 1-based inclusive range '<start>,<end>', e.g. '20,40'.
-        #[clap(short='L', value_parser=AsRange)]
-        range: Option<std::ops::Range<u32>>,
+        #[clap(short='L', value_parser=AsRange, action=clap::ArgAction::Append)]
+        ranges: Vec<std::ops::RangeInclusive<u32>>,
         /// Don't consider commits before the given date.
         #[clap(long,  value_parser=AsTime, value_name = "DATE")]
         since: Option<gix::date::Time>,
@@ -234,8 +234,9 @@ pub mod archive {
 }
 
 pub mod status {
-    use crate::shared::{CheckPathSpec, ParseRenameFraction};
     use gix::bstr::BString;
+
+    use crate::shared::{CheckPathSpec, ParseRenameFraction};
 
     #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
     pub enum Submodules {
@@ -763,8 +764,9 @@ pub mod mailmap {
 
 #[cfg(feature = "gitoxide-core-tools-clean")]
 pub mod clean {
-    use crate::shared::CheckPathSpec;
     use gix::bstr::BString;
+
+    use crate::shared::CheckPathSpec;
 
     #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
     pub enum FindRepository {
@@ -1035,8 +1037,9 @@ pub mod revision {
 }
 
 pub mod attributes {
-    use crate::shared::CheckPathSpec;
     use gix::bstr::BString;
+
+    use crate::shared::CheckPathSpec;
 
     #[derive(Debug, clap::Subcommand)]
     pub enum Subcommands {
@@ -1065,8 +1068,9 @@ pub mod attributes {
 pub mod exclude {
     use std::ffi::OsString;
 
-    use crate::shared::CheckPathSpec;
     use gix::bstr::BString;
+
+    use crate::shared::CheckPathSpec;
 
     #[derive(Debug, clap::Subcommand)]
     pub enum Subcommands {
@@ -1095,8 +1099,9 @@ pub mod exclude {
 pub mod index {
     use std::path::PathBuf;
 
-    use crate::shared::CheckPathSpec;
     use gix::bstr::BString;
+
+    use crate::shared::CheckPathSpec;
 
     pub mod entries {
         #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
