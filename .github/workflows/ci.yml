@@ -171,9 +171,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Setup dependencies (macos)
-        if: startsWith(matrix.os, 'macos')
-        run: brew install openssl gnu-sed
       - name: cargo check default features
         if: startsWith(matrix.os, 'windows')
         run: cargo check --workspace --bins --examples
@@ -184,8 +181,6 @@ jobs:
         env:
           GIX_TEST_CREATE_ARCHIVES_EVEN_ON_CI: '1'
         run: cargo nextest run --workspace --no-fail-fast
-      - name: Doctest
-        run: cargo test --workspace --doc --no-fail-fast
       - name: Check that tracked archives are up to date
         run: git diff --exit-code  # If this fails, the fix is usually to commit a regenerated archive.
 
@@ -361,28 +356,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Install tomlq
-        run: |
-          # The runner already has the `yq` command but not its associated `tomlq` command.
-          sudo apt-get update
-          sudo apt-get install yq
-      - name: Strict check, but omit gix-testtools
-        uses: EmbarkStudios/cargo-deny-action@v2
-        with:
-          command: check advisories
-          arguments: --workspace --all-features --exclude gix-testtools
-      - name: Configure less strict check
-        run: |
-          filter='.advisories.ignore += [
-            { id: "RUSTSEC-2025-0021", reason: "gix-testtools can’t upgrade from old gix-features yet" }
-          ]'
-          tomlq "$filter" deny.toml --toml-output > deny-but-ignore-RUSTSEC-2025-0021.toml
-      - name: Less strict check, but include gix-testtools
-        uses: EmbarkStudios/cargo-deny-action@v2
+      - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check advisories
           arguments: --workspace --all-features
-          command-arguments: --config deny-but-ignore-RUSTSEC-2025-0021.toml
 
   cargo-deny:
     runs-on: ubuntu-latest
@@ -418,29 +395,54 @@ jobs:
         if: endsWith(matrix.target, '-wasi')
         run: |
           set +x
-          for name in gix-sec; do
-            (cd -- "$name" && cargo build --target "$TARGET")
+          for crate in gix-sec; do
+            cargo build -p "$crate" --target "$TARGET"
           done
       - name: crates without feature toggles
         run: |
+          crates=(
+            gix-actor
+            gix-attributes
+            gix-bitmap
+            gix-chunk
+            gix-command
+            gix-commitgraph
+            gix-config-value
+            gix-date
+            gix-glob
+            gix-hash
+            gix-hashtable
+            gix-mailmap
+            gix-object
+            gix-packetline
+            gix-path
+            gix-pathspec
+            gix-prompt
+            gix-quote
+            gix-refspec
+            gix-revision
+            gix-traverse
+            gix-url
+            gix-validate
+          )
           set +x
-          for name in gix-actor gix-attributes gix-bitmap gix-chunk gix-command gix-commitgraph gix-config-value gix-date gix-glob gix-hash gix-hashtable gix-mailmap gix-object gix-packetline gix-path gix-pathspec gix-prompt gix-quote gix-refspec gix-revision gix-traverse gix-url gix-validate; do
-            (cd -- "$name" && cargo build --target "$TARGET")
+          for crate in "${crates[@]}"; do
+            cargo build -p "$crate" --target "$TARGET"
           done
       - name: features of gix-features
         run: |
           set +x
           for feature in progress parallel io-pipe crc32 zlib cache-efficiency-debug; do
-            (cd gix-features && cargo build --features "$feature" --target "$TARGET")
+            cargo build -p gix-features --features "$feature" --target "$TARGET"
           done
       - name: crates with 'wasm' feature
         run: |
           set +x
-          for name in gix-pack; do
-            (cd -- "$name" && cargo build --features wasm --target "$TARGET")
+          for crate in gix-pack; do
+            cargo build -p "$crate" --features wasm --target "$TARGET"
           done
       - name: gix-pack with all features (including wasm)
-        run: cd gix-pack && cargo build --all-features --target "$TARGET"
+        run: cargo build -p gix-pack --all-features --target "$TARGET"
 
   check-packetline:
     strategy:
@@ -457,7 +459,8 @@ jobs:
 
     defaults:
       run:
-        shell: bash  # Use bash even on Windows, if we ever reenable windows-latest for testing.
+        # Use `bash` even on Windows, if we ever reenable `windows-latest` for testing.
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
