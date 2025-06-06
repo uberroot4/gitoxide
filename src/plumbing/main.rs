@@ -118,6 +118,16 @@ pub fn main() -> Result<()> {
                     .append_config(config.iter(), gix::config::Source::Cli)
                     .context("Unable to parse command-line configuration")?;
             }
+            {
+                let mut config_mut = repo.config_snapshot_mut();
+                // Enable precious file parsing unless the user made a choice.
+                if config_mut
+                    .boolean(gix::config::tree::Gitoxide::PARSE_PRECIOUS)
+                    .is_none()
+                {
+                    config_mut.set_raw_value(&gix::config::tree::Gitoxide::PARSE_PRECIOUS, "true")?;
+                }
+            }
             Ok(repo)
         }
     };
@@ -533,7 +543,7 @@ pub fn main() -> Result<()> {
             )
         }
         Subcommands::CommitGraph(cmd) => match cmd {
-            commitgraph::Subcommands::List { spec } => prepare_and_run(
+            commitgraph::Subcommands::List { long_hashes, spec } => prepare_and_run(
                 "commitgraph-list",
                 trace,
                 auto_verbose,
@@ -541,7 +551,7 @@ pub fn main() -> Result<()> {
                 progress_keep_open,
                 None,
                 move |_progress, out, _err| {
-                    core::repository::commitgraph::list(repository(Mode::Lenient)?, spec, out, format)
+                    core::repository::commitgraph::list(repository(Mode::Lenient)?, spec, out, long_hashes, format)
                 },
             )
             .map(|_| ()),
