@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use gix_blame::BlameRanges;
 use gix_hash::ObjectId;
@@ -6,10 +6,11 @@ use gix_object::bstr;
 
 struct Baseline<'a> {
     lines: bstr::Lines<'a>,
+    filenames: BTreeMap<ObjectId, bstr::BString>,
 }
 
 mod baseline {
-    use std::path::Path;
+    use std::{collections::BTreeMap, path::Path};
 
     use gix_blame::BlameEntry;
     use gix_hash::ObjectId;
@@ -40,10 +41,30 @@ mod baseline {
     }
 
     impl Baseline<'_> {
-        pub fn collect(baseline_path: impl AsRef<Path>) -> std::io::Result<Vec<BlameEntry>> {
+        pub fn collect(
+            baseline_path: impl AsRef<Path>,
+            source_file_name: gix_object::bstr::BString,
+        ) -> std::io::Result<Vec<BlameEntry>> {
             let content = std::fs::read(baseline_path)?;
+            let baseline = Baseline {
+                lines: content.lines(),
+                filenames: BTreeMap::default(),
+            };
 
-            Ok(Baseline { lines: content.lines() }.collect())
+            Ok(baseline
+                .map(|entry| {
+                    let source_file_name = if entry.source_file_name.as_ref() == Some(&source_file_name) {
+                        None
+                    } else {
+                        entry.source_file_name
+                    };
+
+                    BlameEntry {
+                        source_file_name,
+                        ..entry
+                    }
+                })
+                .collect())
         }
     }
 
@@ -54,6 +75,7 @@ mod baseline {
             let mut ranges = None;
             let mut commit_id = gix_hash::Kind::Sha1.null();
             let mut skip_lines: u32 = 0;
+            let mut source_file_name: Option<gix_object::bstr::BString> = None;
 
             for line in self.lines.by_ref() {
                 if line.starts_with(b"\t") {
@@ -94,6 +116,12 @@ mod baseline {
                         (line_number_in_final_file - 1)..(line_number_in_final_file + number_of_lines_in_group - 1);
                     assert!(ranges.is_none(), "should not overwrite existing ranges");
                     ranges = Some((blame_range, source_range));
+                } else if fields[0] == "filename" {
+                    // We need to store `source_file_name` as it is not repeated for subsequent
+                    // hunks that have the same `commit_id`.
+                    source_file_name = Some(fields[1].into());
+
+                    self.filenames.insert(commit_id, fields[1].into());
                 } else if !is_known_header_field(&fields[0]) && ObjectId::from_hex(fields[0].as_bytes()).is_err() {
                     panic!("unexpected line: '{:?}'", line.as_bstr());
                 }
@@ -103,7 +131,12 @@ mod baseline {
                 // No new lines were parsed, so we assume the iterator is finished.
                 return None;
             };
-            Some(BlameEntry::new(range_in_blamed_file, range_in_source_file, commit_id))
+            Some(BlameEntry::new(
+                range_in_blamed_file,
+                range_in_source_file,
+                commit_id,
+                source_file_name.or_else(|| self.filenames.get(&commit_id).cloned()),
+            ))
         }
     }
 }
@@ -116,7 +149,7 @@ struct Fixture {
 
 impl Fixture {
     fn new() -> gix_testtools::Result<Fixture> {
-        Self::for_worktree_path(fixture_path())
+        Self::for_worktree_path(fixture_path()?)
     }
 
     fn for_worktree_path(worktree_path: PathBuf) -> gix_testtools::Result<Fixture> {
@@ -179,34 +212,37 @@ impl Fixture {
 macro_rules! mktest {
     ($name:ident, $case:expr, $number_of_lines:literal) => {
         #[test]
-        fn $name() -> gix_testtools::Result<()> {
+        fn $name() -> gix_testtools::Result {
             let Fixture {
                 odb,
                 mut resource_cache,
                 suspect,
             } = Fixture::new()?;
 
+            let source_file_name: gix_object::bstr::BString = format!("{}.txt", $case).into();
+
             let lines_blamed = gix_blame::file(
                 &odb,
                 suspect,
                 None,
                 &mut resource_cache,
-                format!("{}.txt", $case).as_str().into(),
+                source_file_name.as_ref(),
                 gix_blame::Options {
                     diff_algorithm: gix_diff::blob::Algorithm::Histogram,
                     range: BlameRanges::default(),
                     since: None,
+                    rewrites: Some(gix_diff::Rewrites::default()),
                 },
             )?
             .entries;
 
             assert_eq!(lines_blamed.len(), $number_of_lines);
 
-            let git_dir = fixture_path().join(".git");
-            let baseline = Baseline::collect(git_dir.join(format!("{}.baseline", $case)))?;
+            let git_dir = fixture_path()?.join(".git");
+            let baseline = Baseline::collect(git_dir.join(format!("{}.baseline", $case)), source_file_name)?;
 
             assert_eq!(baseline.len(), $number_of_lines);
-            assert_eq!(lines_blamed, baseline);
+            pretty_assertions::assert_eq!(lines_blamed, baseline);
             Ok(())
         }
     };
@@ -230,6 +266,15 @@ mktest!(same_line_changed_twice, "same-line-changed-twice", 2);
 mktest!(coalesce_adjacent_hunks, "coalesce-adjacent-hunks", 1);
 
 mktest!(sub_directory, "sub-directory/sub-directory", 3);
+
+mktest!(after_rename, "after-rename", 1);
+mktest!(after_second_rename, "after-second-rename", 1);
+mktest!(after_rewrite, "after-rewrite", 3);
+mktest!(
+    after_move_to_sub_directory,
+    "sub-directory/after-move-to-sub-directory",
+    1
+);
 
 mktest!(resolved_conflict, "resolved-conflict", 2);
 mktest!(file_in_one_chain_of_ancestors, "file-in-one-chain-of-ancestors", 1);
@@ -259,16 +304,19 @@ fn diff_disparity() {
             suspect,
         } = Fixture::new().unwrap();
 
+        let source_file_name: gix_object::bstr::BString = format!("{case}.txt").into();
+
         let lines_blamed = gix_blame::file(
             &odb,
             suspect,
             None,
             &mut resource_cache,
-            format!("{case}.txt").as_str().into(),
+            source_file_name.as_ref(),
             gix_blame::Options {
                 diff_algorithm: gix_diff::blob::Algorithm::Histogram,
                 range: BlameRanges::default(),
                 since: None,
+                rewrites: Some(gix_diff::Rewrites::default()),
             },
         )
         .unwrap()
@@ -276,42 +324,46 @@ fn diff_disparity() {
 
         assert_eq!(lines_blamed.len(), 5);
 
-        let git_dir = fixture_path().join(".git");
-        let baseline = Baseline::collect(git_dir.join(format!("{case}.baseline"))).unwrap();
+        let git_dir = fixture_path().unwrap().join(".git");
+        let baseline = Baseline::collect(git_dir.join(format!("{case}.baseline")), source_file_name).unwrap();
 
-        assert_eq!(lines_blamed, baseline, "{case}");
+        pretty_assertions::assert_eq!(lines_blamed, baseline, "{case}");
     }
 }
 
 #[test]
-fn since() {
+fn since() -> gix_testtools::Result {
     let Fixture {
         odb,
         mut resource_cache,
         suspect,
-    } = Fixture::new().unwrap();
+    } = Fixture::new()?;
+
+    let source_file_name: gix_object::bstr::BString = "simple.txt".into();
 
     let lines_blamed = gix_blame::file(
         &odb,
         suspect,
         None,
         &mut resource_cache,
-        "simple.txt".into(),
+        source_file_name.as_ref(),
         gix_blame::Options {
             diff_algorithm: gix_diff::blob::Algorithm::Histogram,
             range: BlameRanges::default(),
-            since: Some(gix_date::parse("2025-01-31", None).unwrap()),
+            since: Some(gix_date::parse("2025-01-31", None)?),
+            rewrites: Some(gix_diff::Rewrites::default()),
         },
-    )
-    .unwrap()
+    )?
     .entries;
 
     assert_eq!(lines_blamed.len(), 1);
 
-    let git_dir = fixture_path().join(".git");
-    let baseline = Baseline::collect(git_dir.join("simple-since.baseline")).unwrap();
+    let git_dir = fixture_path()?.join(".git");
+    let baseline = Baseline::collect(git_dir.join("simple-since.baseline"), source_file_name)?;
 
-    assert_eq!(lines_blamed, baseline);
+    pretty_assertions::assert_eq!(lines_blamed, baseline);
+
+    Ok(())
 }
 
 mod blame_ranges {
@@ -319,106 +371,166 @@ mod blame_ranges {
     use gix_blame::BlameRanges;
 
     #[test]
-    fn line_range() {
+    fn line_range() -> gix_testtools::Result {
         let Fixture {
             odb,
             mut resource_cache,
             suspect,
-        } = Fixture::new().unwrap();
+        } = Fixture::new()?;
+
+        let source_file_name: gix_object::bstr::BString = "simple.txt".into();
 
         let lines_blamed = gix_blame::file(
             &odb,
             suspect,
             None,
             &mut resource_cache,
-            "simple.txt".into(),
+            source_file_name.as_ref(),
             gix_blame::Options {
                 diff_algorithm: gix_diff::blob::Algorithm::Histogram,
                 range: BlameRanges::from_range(1..=2),
                 since: None,
+                rewrites: Some(gix_diff::Rewrites::default()),
             },
-        )
-        .unwrap()
+        )?
         .entries;
 
         assert_eq!(lines_blamed.len(), 2);
 
-        let git_dir = fixture_path().join(".git");
-        let baseline = Baseline::collect(git_dir.join("simple-lines-1-2.baseline")).unwrap();
+        let git_dir = fixture_path()?.join(".git");
+        let baseline = Baseline::collect(git_dir.join("simple-lines-1-2.baseline"), source_file_name)?;
 
-        assert_eq!(lines_blamed, baseline);
+        pretty_assertions::assert_eq!(lines_blamed, baseline);
+
+        Ok(())
     }
 
     #[test]
-    fn multiple_ranges_using_add_range() {
+    fn multiple_ranges_using_add_range() -> gix_testtools::Result {
         let Fixture {
             odb,
             mut resource_cache,
             suspect,
-        } = Fixture::new().unwrap();
+        } = Fixture::new()?;
 
         let mut ranges = BlameRanges::new();
         ranges.add_range(1..=2); // Lines 1-2
         ranges.add_range(1..=1); // Duplicate range, should be ignored
         ranges.add_range(4..=4); // Line 4
 
+        let source_file_name: gix_object::bstr::BString = "simple.txt".into();
+
         let lines_blamed = gix_blame::file(
             &odb,
             suspect,
             None,
             &mut resource_cache,
-            "simple.txt".into(),
+            source_file_name.as_ref(),
             gix_blame::Options {
                 diff_algorithm: gix_diff::blob::Algorithm::Histogram,
                 range: ranges,
                 since: None,
+                rewrites: None,
             },
-        )
-        .unwrap()
+        )?
         .entries;
 
         assert_eq!(lines_blamed.len(), 3); // Should have 3 lines total (2 from first range + 1 from second range)
 
-        let git_dir = fixture_path().join(".git");
-        let baseline = Baseline::collect(git_dir.join("simple-lines-multiple-1-2-and-4.baseline")).unwrap();
+        let git_dir = fixture_path()?.join(".git");
+        let baseline = Baseline::collect(
+            git_dir.join("simple-lines-multiple-1-2-and-4.baseline"),
+            source_file_name,
+        )?;
 
-        assert_eq!(lines_blamed, baseline);
+        pretty_assertions::assert_eq!(lines_blamed, baseline);
+
+        Ok(())
     }
 
     #[test]
-    fn multiple_ranges_usingfrom_ranges() {
+    fn multiple_ranges_using_from_ranges() -> gix_testtools::Result {
         let Fixture {
             odb,
             mut resource_cache,
             suspect,
-        } = Fixture::new().unwrap();
+        } = Fixture::new()?;
 
         let ranges = BlameRanges::from_ranges(vec![1..=2, 1..=1, 4..=4]);
+
+        let source_file_name: gix_object::bstr::BString = "simple.txt".into();
 
         let lines_blamed = gix_blame::file(
             &odb,
             suspect,
             None,
             &mut resource_cache,
-            "simple.txt".into(),
+            source_file_name.as_ref(),
             gix_blame::Options {
                 diff_algorithm: gix_diff::blob::Algorithm::Histogram,
                 range: ranges,
                 since: None,
+                rewrites: None,
             },
-        )
-        .unwrap()
+        )?
         .entries;
 
         assert_eq!(lines_blamed.len(), 3); // Should have 3 lines total (2 from first range + 1 from second range)
 
-        let git_dir = fixture_path().join(".git");
-        let baseline = Baseline::collect(git_dir.join("simple-lines-multiple-1-2-and-4.baseline")).unwrap();
+        let git_dir = fixture_path()?.join(".git");
+        let baseline = Baseline::collect(
+            git_dir.join("simple-lines-multiple-1-2-and-4.baseline"),
+            source_file_name,
+        )?;
 
-        assert_eq!(lines_blamed, baseline);
+        pretty_assertions::assert_eq!(lines_blamed, baseline);
+
+        Ok(())
     }
 }
 
-fn fixture_path() -> PathBuf {
-    gix_testtools::scripted_fixture_read_only("make_blame_repo.sh").unwrap()
+mod rename_tracking {
+    use gix_blame::BlameRanges;
+
+    use crate::{Baseline, Fixture};
+
+    #[test]
+    fn source_file_name_is_tracked_per_hunk() -> gix_testtools::Result {
+        let worktree_path = gix_testtools::scripted_fixture_read_only("make_blame_rename_tracking_repo.sh")?;
+
+        let Fixture {
+            odb,
+            mut resource_cache,
+            suspect,
+        } = Fixture::for_worktree_path(worktree_path.to_path_buf())?;
+
+        let source_file_name = "after-rename.txt";
+        let lines_blamed = gix_blame::file(
+            &odb,
+            suspect,
+            None,
+            &mut resource_cache,
+            source_file_name.into(),
+            gix_blame::Options {
+                diff_algorithm: gix_diff::blob::Algorithm::Histogram,
+                range: BlameRanges::default(),
+                since: None,
+                rewrites: Some(gix_diff::Rewrites::default()),
+            },
+        )?
+        .entries;
+
+        assert_eq!(lines_blamed.len(), 3);
+
+        let git_dir = worktree_path.join(".git");
+        let baseline = Baseline::collect(git_dir.join("after-rename.baseline"), source_file_name.into())?;
+
+        pretty_assertions::assert_eq!(lines_blamed, baseline);
+
+        Ok(())
+    }
+}
+
+fn fixture_path() -> gix_testtools::Result<PathBuf> {
+    gix_testtools::scripted_fixture_read_only("make_blame_repo.sh")
 }
