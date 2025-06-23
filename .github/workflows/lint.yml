@@ -21,6 +21,9 @@ jobs:
         with:
           toolchain: stable
           components: clippy,rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
       - uses: extractions/setup-just@v3
       - name: Run cargo clippy
         run: just clippy -D warnings -A unknown-lints --no-deps
