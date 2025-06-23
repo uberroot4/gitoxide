@@ -102,7 +102,9 @@ impl File {
                 }
             }
             #[cfg(not(target_os = "wasi"))]
-            { (data, filetime::FileTime::from_last_modification_time(&file.metadata()?)) }
+            {
+                (data, filetime::FileTime::from_last_modification_time(&file.metadata()?))
+            }
             #[cfg(target_os = "wasi")]
             (data, filetime::FileTime::zero())
         };

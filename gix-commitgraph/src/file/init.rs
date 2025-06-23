@@ -65,11 +65,9 @@ impl File {
     /// Note that `path` is only used for verification of the hash its basename contains, but otherwise
     /// is not of importance.
     pub fn new(
-        #[cfg(not(target_os = "wasi"))]
-        data: memmap2::Mmap,
-        #[cfg(target_os = "wasi")]
-        data: Vec<u8>,
-        path: PathBuf
+        #[cfg(not(target_os = "wasi"))] data: memmap2::Mmap,
+        #[cfg(target_os = "wasi")] data: Vec<u8>,
+        path: PathBuf,
     ) -> Result<File, Error> {
         let data_size = data.len();
         if data_size < MIN_FILE_SIZE {

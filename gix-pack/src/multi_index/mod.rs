@@ -1,6 +1,6 @@
-use std::path::PathBuf;
 #[cfg(not(target_os = "wasi"))]
 use memmap2::Mmap;
+use std::path::PathBuf;
 
 /// Known multi-index file versions
 #[derive(Default, PartialEq, Eq, Ord, PartialOrd, Debug, Hash, Clone, Copy)]
