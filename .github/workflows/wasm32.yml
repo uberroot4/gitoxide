@@ -1,0 +1,123 @@
+name: wasm32
+
+on:
+  push:
+    branches:
+      - main
+      - 'run-ci/**'
+      - '**/run-ci/**'
+    tags-ignore:
+      - '*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR: '1'
+
+jobs:
+  test-wasm32:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        #        target: [ wasm32-unknown-unknown, wasm32-wasip1, wasm32-wasip2 ]
+        target: [ wasm32-wasip2 ]
+
+    env:
+      TARGET: ${{ matrix.target }}
+
+    steps:
+      - uses: actions/checkout@v4
+      #      - uses: dtolnay/rust-toolchain@nightly
+      #        with:
+      #          targets: ${{ env.TARGET }}
+      - name: Install Rust
+        run: |
+          rustup update nightly
+          rustup default nightly
+          rustup target add "$TARGET"
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+      - name: Test (nextest)
+        run: cargo +nightly nextest run --no-default-features --target $TARGET --package gix --no-fail-fast size
+
+  wasm:
+    name: WebAssembly
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target: [ wasm32-unknown-unknown, wasm32-wasip1, wasm32-wasip2 ]
+
+    env:
+      TARGET: ${{ matrix.target }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: |
+          rustup update nightly
+          rustup default nightly
+          rustup target add "$TARGET"
+      - uses: Swatinem/rust-cache@v2
+      - name: 'WASI only: crates without feature toggle'
+        if: endsWith(matrix.target, '-wasi')
+        run: |
+          set +x
+          for crate in gix-sec; do
+            cargo build -p "$crate" --target "$TARGET"
+          done
+      - name: crates without feature toggles
+        run: |
+          crates=(
+            gix-actor
+            gix-attributes
+            gix-bitmap
+            gix-chunk
+            gix-command
+            gix-commitgraph
+            gix-config-value
+            gix-date
+            gix-glob
+            gix-hash
+            gix-hashtable
+            gix-mailmap
+            gix-object
+            gix-packetline
+            gix-path
+            gix-pathspec
+            gix-prompt
+            gix-quote
+            gix-refspec
+            gix-revision
+            gix-traverse
+            gix-url
+            gix-validate
+          )
+          set +x
+          for crate in "${crates[@]}"; do
+            cargo build -p "$crate" --target "$TARGET"
+          done
+      - name: features of gix-features
+        run: |
+          set +x
+          for feature in progress parallel io-pipe crc32 zlib cache-efficiency-debug; do
+            cargo build -p gix-features --features "$feature" --target "$TARGET"
+          done
+      - name: crates with 'wasm' feature
+        run: |
+          set +x
+          for crate in gix-pack; do
+            cargo build -p "$crate" --features wasm --target "$TARGET"
+          done
+      - name: gix-pack with all features (including wasm)
+        run: cargo build -p gix-pack --all-features --target "$TARGET"
