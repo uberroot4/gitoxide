@@ -3,7 +3,7 @@ use std::{io, io::ErrorKind::AlreadyExists, path::Path};
 /// Create a new symlink at `link` which points to `original`.
 ///
 /// Note that `original` doesn't have to exist.
-#[cfg(all(not(windows), not(all(target_os = "wasi"))))]
+#[cfg(all(not(windows), not(target_os = "wasi")))]
 pub fn create(original: &Path, link: &Path) -> io::Result<()> {
     std::os::unix::fs::symlink(original, link)
 }
