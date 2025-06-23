@@ -120,7 +120,7 @@ static REGISTRY: Lazy<HashMap<usize, Option<ForksafeTempfile>>> = Lazy::new(|| {
             // SAFETY: handlers are considered unsafe because a lot can go wrong. See `cleanup_tempfiles()` for details on safety.
             #[allow(unsafe_code)]
             unsafe {
-                #[cfg(all(not(windows)))]
+                #[cfg(not(windows))]
                 {
                     signal_hook_registry::register_sigaction(*sig, signal::handler::cleanup_tempfiles_nix)
                 }
