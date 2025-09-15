@@ -1,6 +1,9 @@
+use gix_date::parse::TimeBuf;
+use gix_odb::Header;
+use gix_pack::Find;
 use gix_testtools::tempfile;
 
-use crate::util::named_subrepo_opts;
+use crate::util::{hex_to_id, named_subrepo_opts};
 
 mod object_database_impl {
     use gix_object::{Exists, Find, FindHeader};
@@ -259,7 +262,7 @@ mod write_object {
         let oid = repo.write_object(gix::objs::TreeRef::empty())?;
         assert_eq!(
             oid,
-            gix::hash::ObjectId::empty_tree(repo.object_hash()),
+            repo.object_hash().empty_tree(),
             "it produces a well-known empty tree id"
         );
         Ok(())
@@ -274,7 +277,7 @@ mod write_object {
             time: Default::default(),
         };
         let commit = gix::objs::Commit {
-            tree: gix::hash::ObjectId::empty_tree(repo.object_hash()),
+            tree: repo.object_hash().empty_tree(),
             author: actor.clone(),
             committer: actor,
             parents: Default::default(),
@@ -287,6 +290,21 @@ mod write_object {
             r"Signature name or email must not contain '<', '>' or \n",
             "the actor is invalid so triggers an error when persisting it"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn blob_write_to_implementation() -> crate::Result {
+        let repo = empty_bare_in_memory_repo()?;
+        let blob = repo.empty_blob();
+
+        // Create a blob directly to test our WriteTo implementation
+        let actual_id = repo.write_object(&blob)?;
+        let actual_blob = repo.find_object(actual_id)?.into_blob();
+        assert_eq!(actual_id, repo.object_hash().empty_blob());
+
+        assert_eq!(actual_blob.data, blob.data);
+
         Ok(())
     }
 }
@@ -429,6 +447,7 @@ mod find {
     use gix_pack::Find;
 
     use crate::basic_repo;
+    use crate::repository::object::empty_bare_in_memory_repo;
 
     #[test]
     fn find_and_try_find_with_and_without_object_cache() -> crate::Result {
@@ -507,6 +526,86 @@ mod find {
         );
         Ok(())
     }
+
+    #[test]
+    fn empty_blob_can_be_found_if_it_exists() -> crate::Result {
+        let repo = basic_repo()?;
+        let empty_blob = gix::hash::ObjectId::empty_blob(repo.object_hash());
+
+        assert_eq!(
+            repo.find_object(empty_blob)?.into_blob().data.len(),
+            0,
+            "The basic_repo fixture contains an empty blob"
+        );
+        assert!(repo.has_object(empty_blob));
+        assert_eq!(
+            repo.find_header(empty_blob)?,
+            gix_odb::find::Header::Loose {
+                kind: gix_object::Kind::Blob,
+                size: 0,
+            },
+            "empty blob is found when it exists in the repository"
+        );
+        assert_eq!(
+            repo.try_find_object(empty_blob)?
+                .expect("present")
+                .into_blob()
+                .data
+                .len(),
+            0
+        );
+        assert_eq!(
+            repo.try_find_header(empty_blob)?,
+            Some(gix_odb::find::Header::Loose {
+                kind: gix_object::Kind::Blob,
+                size: 0,
+            }),
+            "empty blob is found when it exists in the repository"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn empty_blob() -> crate::Result {
+        let repo = empty_bare_in_memory_repo()?;
+        let empty_blob = repo.empty_blob();
+
+        assert_eq!(empty_blob.id, repo.object_hash().empty_blob());
+        assert_eq!(empty_blob.data.len(), 0);
+
+        assert!(!repo.has_object(empty_blob.id), "it doesn't exist by default");
+        repo.write_blob(&empty_blob.data)?;
+        assert!(repo.has_object(empty_blob.id), "it exists after it was written");
+
+        Ok(())
+    }
+}
+
+#[test]
+fn empty_objects_are_always_present_but_not_in_plumbing() -> crate::Result {
+    let repo = empty_bare_in_memory_repo()?;
+    let empty_blob_id = repo.object_hash().empty_blob();
+
+    assert!(
+        !repo.has_object(empty_blob_id),
+        "empty blob is not present unless it actually exists"
+    );
+    assert!(!repo.objects.contains(&empty_blob_id));
+
+    assert!(
+        repo.find_header(empty_blob_id).is_err(),
+        "Empty blob doesn't exist automatically just like in Git"
+    );
+    assert_eq!(repo.objects.try_header(&empty_blob_id)?, None);
+
+    assert_eq!(repo.try_find_header(empty_blob_id)?, None);
+    assert!(repo.find_object(empty_blob_id).is_err());
+
+    assert!(repo.try_find_object(empty_blob_id)?.is_none());
+    let mut buf = Vec::new();
+    assert_eq!(repo.objects.try_find(&empty_blob_id, &mut buf)?, None);
+
+    Ok(())
 }
 
 mod tag {
@@ -648,7 +747,7 @@ mod commit {
     fn multi_line_commit_message_uses_first_line_in_ref_log_ref_nonexisting() -> crate::Result {
         let _env = freeze_time();
         let (repo, _keep) = crate::repo_rw_opts("make_basic_repo.sh", restricted_and_git())?;
-        let parent = repo.find_reference("HEAD")?.peel_to_id_in_place()?;
+        let parent = repo.find_reference("HEAD")?.peel_to_id()?;
         let empty_tree_id = parent.object()?.to_commit_ref_iter().tree_id().expect("tree to be set");
         assert_eq!(
             parent
@@ -697,7 +796,7 @@ mod commit {
         );
 
         let mut branch = repo.find_reference("new-branch")?;
-        let current_commit = branch.peel_to_id_in_place()?;
+        let current_commit = branch.peel_to_id()?;
         assert_eq!(current_commit, second_commit_id, "the commit was set");
 
         let mut log = branch.log_iter();
@@ -712,6 +811,68 @@ mod commit {
         );
         Ok(())
     }
+}
+
+#[test]
+fn new_commit_as() -> crate::Result {
+    let repo = empty_bare_in_memory_repo()?;
+    let empty_tree = repo.empty_tree();
+    let committer = gix::actor::Signature {
+        name: "c".into(),
+        email: "c@example.com".into(),
+        time: gix_date::parse_header("1 +0030").unwrap(),
+    };
+    let author = gix::actor::Signature {
+        name: "a".into(),
+        email: "a@example.com".into(),
+        time: gix_date::parse_header("3 +0100").unwrap(),
+    };
+
+    let commit = repo.new_commit_as(
+        committer.to_ref(&mut TimeBuf::default()),
+        author.to_ref(&mut TimeBuf::default()),
+        "message",
+        empty_tree.id,
+        gix::commit::NO_PARENT_IDS,
+    )?;
+
+    assert_eq!(
+        commit.id,
+        hex_to_id("b51277f2b2ea77676dd6fa877b5eb5ba2f7094d9"),
+        "The commit-id is stable as the author/committer is controlled"
+    );
+
+    let commit = commit.decode()?;
+
+    let mut buf = TimeBuf::default();
+    assert_eq!(commit.committer, committer.to_ref(&mut buf));
+    assert_eq!(commit.author, author.to_ref(&mut buf));
+    assert_eq!(commit.message, "message");
+    assert_eq!(commit.tree(), empty_tree.id);
+    assert_eq!(commit.parents.len(), 0);
+
+    assert!(repo.head()?.is_unborn(), "The head-ref wasn't touched");
+    Ok(())
+}
+
+#[test]
+fn new_commit() -> crate::Result {
+    let mut repo = empty_bare_in_memory_repo()?;
+    let mut config = repo.config_snapshot_mut();
+    config.set_value(&gix::config::tree::User::NAME, "user")?;
+    config.set_value(&gix::config::tree::User::EMAIL, "user@example.com")?;
+    config.commit()?;
+
+    let empty_tree_id = repo.object_hash().empty_tree();
+    let commit = repo.new_commit("initial", empty_tree_id, gix::commit::NO_PARENT_IDS)?;
+    let commit = commit.decode()?;
+
+    assert_eq!(commit.message, "initial");
+    assert_eq!(commit.tree(), empty_tree_id);
+    assert_eq!(commit.parents.len(), 0);
+
+    assert!(repo.head()?.is_unborn(), "The head-ref wasn't touched");
+    Ok(())
 }
 
 fn empty_bare_in_memory_repo() -> crate::Result<gix::Repository> {

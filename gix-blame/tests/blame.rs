@@ -166,10 +166,10 @@ impl Fixture {
 
         let mut reference = gix_ref::file::Store::find(&store, "HEAD")?;
 
-        // Needed for `peel_to_id_in_place`.
+        // Needed for `peel_to_id`.
         use gix_ref::file::ReferenceExt;
 
-        let head_id = reference.peel_to_id_in_place(&store, &odb)?;
+        let head_id = reference.peel_to_id(&store, &odb)?;
 
         let git_dir = worktree_path.join(".git");
         let index = gix_index::File::at(git_dir.join("index"), gix_hash::Kind::Sha1, false, Default::default())?;
@@ -232,6 +232,7 @@ macro_rules! mktest {
                     range: BlameRanges::default(),
                     since: None,
                     rewrites: Some(gix_diff::Rewrites::default()),
+                    debug_track_path: false,
                 },
             )?
             .entries;
@@ -317,6 +318,7 @@ fn diff_disparity() {
                 range: BlameRanges::default(),
                 since: None,
                 rewrites: Some(gix_diff::Rewrites::default()),
+                debug_track_path: false,
             },
         )
         .unwrap()
@@ -329,6 +331,37 @@ fn diff_disparity() {
 
         pretty_assertions::assert_eq!(lines_blamed, baseline, "{case}");
     }
+}
+
+#[test]
+fn file_that_was_added_in_two_branches() -> gix_testtools::Result {
+    let worktree_path = gix_testtools::scripted_fixture_read_only("make_blame_two_roots_repo.sh")?;
+
+    let Fixture {
+        odb,
+        mut resource_cache,
+        suspect,
+    } = Fixture::for_worktree_path(worktree_path.to_path_buf())?;
+
+    let source_file_name = "file-with-two-roots.txt";
+    let lines_blamed = gix_blame::file(
+        &odb,
+        suspect,
+        None,
+        &mut resource_cache,
+        source_file_name.into(),
+        gix_blame::Options::default(),
+    )?
+    .entries;
+
+    assert_eq!(lines_blamed.len(), 4);
+
+    let git_dir = worktree_path.join(".git");
+    let baseline = Baseline::collect(git_dir.join("file-with-two-roots.baseline"), source_file_name.into())?;
+
+    pretty_assertions::assert_eq!(lines_blamed, baseline);
+
+    Ok(())
 }
 
 #[test]
@@ -352,6 +385,7 @@ fn since() -> gix_testtools::Result {
             range: BlameRanges::default(),
             since: Some(gix_date::parse("2025-01-31", None)?),
             rewrites: Some(gix_diff::Rewrites::default()),
+            debug_track_path: false,
         },
     )?
     .entries;
@@ -391,6 +425,7 @@ mod blame_ranges {
                 range: BlameRanges::from_range(1..=2),
                 since: None,
                 rewrites: Some(gix_diff::Rewrites::default()),
+                debug_track_path: false,
             },
         )?
         .entries;
@@ -431,6 +466,7 @@ mod blame_ranges {
                 range: ranges,
                 since: None,
                 rewrites: None,
+                debug_track_path: false,
             },
         )?
         .entries;
@@ -471,6 +507,7 @@ mod blame_ranges {
                 range: ranges,
                 since: None,
                 rewrites: None,
+                debug_track_path: false,
             },
         )?
         .entries;
@@ -516,6 +553,7 @@ mod rename_tracking {
                 range: BlameRanges::default(),
                 since: None,
                 rewrites: Some(gix_diff::Rewrites::default()),
+                debug_track_path: false,
             },
         )?
         .entries;

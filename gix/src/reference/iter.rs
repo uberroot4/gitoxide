@@ -13,15 +13,15 @@ pub struct Platform<'r> {
 }
 
 /// An iterator over references, with or without filter.
-pub struct Iter<'r> {
-    inner: gix_ref::file::iter::LooseThenPacked<'r, 'r>,
+pub struct Iter<'packed, 'repo> {
+    inner: gix_ref::file::iter::LooseThenPacked<'packed, 'repo>,
     peel_with_packed: Option<gix_ref::file::packed::SharedBufferSnapshot>,
     peel: bool,
-    repo: &'r crate::Repository,
+    repo: &'repo crate::Repository,
 }
 
-impl<'r> Iter<'r> {
-    fn new(repo: &'r crate::Repository, platform: gix_ref::file::iter::LooseThenPacked<'r, 'r>) -> Self {
+impl<'packed, 'repo> Iter<'packed, 'repo> {
+    fn new(repo: &'repo crate::Repository, platform: gix_ref::file::iter::LooseThenPacked<'packed, 'repo>) -> Self {
         Iter {
             inner: platform,
             peel_with_packed: None,
@@ -31,12 +31,13 @@ impl<'r> Iter<'r> {
     }
 }
 
-impl Platform<'_> {
-    /// Return an iterator over all references in the repository.
+impl<'repo> Platform<'repo> {
+    /// Return an iterator over all references in the repository, excluding
+    /// pseudo references.
     ///
     /// Even broken or otherwise unparsable or inaccessible references are returned and have to be handled by the caller on a
     /// case by case basis.
-    pub fn all(&self) -> Result<Iter<'_>, init::Error> {
+    pub fn all(&self) -> Result<Iter<'_, 'repo>, init::Error> {
         Ok(Iter::new(self.repo, self.platform.all()?))
     }
 
@@ -46,15 +47,14 @@ impl Platform<'_> {
     pub fn prefixed<'a>(
         &self,
         prefix: impl TryInto<&'a RelativePath, Error = gix_path::relative_path::Error>,
-    ) -> Result<Iter<'_>, init::Error> {
+    ) -> Result<Iter<'_, 'repo>, init::Error> {
         Ok(Iter::new(self.repo, self.platform.prefixed(prefix.try_into()?)?))
     }
 
-    // TODO: tests
     /// Return an iterator over all references that are tags.
     ///
     /// They are all prefixed with `refs/tags`.
-    pub fn tags(&self) -> Result<Iter<'_>, init::Error> {
+    pub fn tags(&self) -> Result<Iter<'_, 'repo>, init::Error> {
         Ok(Iter::new(self.repo, self.platform.prefixed(b"refs/tags/".try_into()?)?))
     }
 
@@ -62,7 +62,7 @@ impl Platform<'_> {
     /// Return an iterator over all local branches.
     ///
     /// They are all prefixed with `refs/heads`.
-    pub fn local_branches(&self) -> Result<Iter<'_>, init::Error> {
+    pub fn local_branches(&self) -> Result<Iter<'_, 'repo>, init::Error> {
         Ok(Iter::new(
             self.repo,
             self.platform.prefixed(b"refs/heads/".try_into()?)?,
@@ -70,10 +70,16 @@ impl Platform<'_> {
     }
 
     // TODO: tests
+    /// Return an iterator over all local pseudo references.
+    pub fn pseudo(&self) -> Result<Iter<'_, 'repo>, init::Error> {
+        Ok(Iter::new(self.repo, self.platform.pseudo()?))
+    }
+
+    // TODO: tests
     /// Return an iterator over all remote branches.
     ///
     /// They are all prefixed with `refs/remotes`.
-    pub fn remote_branches(&self) -> Result<Iter<'_>, init::Error> {
+    pub fn remote_branches(&self) -> Result<Iter<'_, 'repo>, init::Error> {
         Ok(Iter::new(
             self.repo,
             self.platform.prefixed(b"refs/remotes/".try_into()?)?,
@@ -81,7 +87,7 @@ impl Platform<'_> {
     }
 }
 
-impl Iter<'_> {
+impl Iter<'_, '_> {
     /// Automatically peel references before yielding them during iteration.
     ///
     /// This has the same effect as using `iter.map(|r| {r.peel_to_id_in_place(); r})`.
@@ -97,7 +103,7 @@ impl Iter<'_> {
     }
 }
 
-impl<'r> Iterator for Iter<'r> {
+impl<'r> Iterator for Iter<'_, 'r> {
     type Item = Result<crate::Reference<'r>, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -106,13 +112,9 @@ impl<'r> Iterator for Iter<'r> {
                 .and_then(|mut r| {
                     if self.peel {
                         let repo = &self.repo;
-                        r.peel_to_id_in_place_packed(
-                            &repo.refs,
-                            &repo.objects,
-                            self.peel_with_packed.as_ref().map(|p| &***p),
-                        )
-                        .map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync + 'static>)
-                        .map(|_| r)
+                        r.peel_to_id_packed(&repo.refs, &repo.objects, self.peel_with_packed.as_ref().map(|p| &***p))
+                            .map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync + 'static>)
+                            .map(|_| r)
                     } else {
                         Ok(r)
                     }

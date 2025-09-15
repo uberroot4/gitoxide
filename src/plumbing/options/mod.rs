@@ -83,6 +83,9 @@ pub enum Subcommands {
     /// Subcommands for creating worktree archives.
     #[cfg(feature = "gitoxide-core-tools-archive")]
     Archive(archive::Platform),
+    /// Interact with branches.
+    #[clap(visible_alias = "branches")]
+    Branch(branch::Platform),
     /// Remove untracked files from the working tree.
     #[cfg(feature = "gitoxide-core-tools-clean")]
     Clean(clean::Command),
@@ -100,6 +103,9 @@ pub enum Subcommands {
     /// Interact with commit objects.
     #[clap(subcommand)]
     Commit(commit::Subcommands),
+    /// Interact with tag objects.
+    #[clap(visible_alias = "tags")]
+    Tag(tag::Platform),
     /// Verify the integrity of the entire repository
     Verify {
         #[clap(flatten)]
@@ -230,6 +236,24 @@ pub mod archive {
         ///
         /// If commit, the commit timestamp will be used as timestamp for each file in the archive.
         pub treeish: Option<String>,
+    }
+}
+
+pub mod branch {
+    #[derive(Debug, clap::Parser)]
+    pub struct Platform {
+        #[clap(subcommand)]
+        pub cmd: Subcommands,
+    }
+
+    #[derive(Debug, clap::Subcommand)]
+    pub enum Subcommands {
+        /// List branches.
+        List {
+            /// List remote-tracking as well as local branches.
+            #[clap(long, short = 'a')]
+            all: bool,
+        },
     }
 }
 
@@ -605,7 +629,7 @@ pub mod fetch {
         #[clap(long, help_heading = Some("SHALLOW"), conflicts_with_all = ["shallow_since", "shallow_exclude", "deepen", "unshallow"])]
         pub depth: Option<NonZeroU32>,
 
-        /// Extend the current shallow boundary by the given amount of commits, with 0 meaning no change.
+        /// Extend the current shallow boundary by the given number of commits, with 0 meaning no change.
         #[clap(long, help_heading = Some("SHALLOW"), value_name = "DEPTH", conflicts_with_all = ["depth", "shallow_since", "shallow_exclude", "unshallow"])]
         pub deepen: Option<u32>,
 
@@ -928,6 +952,20 @@ pub mod commit {
     }
 }
 
+pub mod tag {
+    #[derive(Debug, clap::Parser)]
+    pub struct Platform {
+        #[clap(subcommand)]
+        pub cmds: Option<Subcommands>,
+    }
+
+    #[derive(Debug, clap::Subcommand)]
+    pub enum Subcommands {
+        /// List all tags.
+        List,
+    }
+}
+
 pub mod credential {
     #[derive(Debug, clap::Subcommand)]
     pub enum Subcommands {
@@ -996,8 +1034,11 @@ pub mod revision {
         /// List all commits reachable from the given rev-spec.
         #[clap(visible_alias = "l")]
         List {
-            /// How many commits to list at most.
+            /// Display long hashes, instead of expensively shortened versions for best performance.
             #[clap(long, short = 'l')]
+            long_hashes: bool,
+            /// How many commits to list at most.
+            #[clap(long)]
             limit: Option<usize>,
             /// Write the graph as SVG file to the given path.
             #[clap(long, short = 's')]

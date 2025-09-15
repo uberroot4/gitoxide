@@ -16,8 +16,8 @@ use gix::bstr::{io::BufReadExt, BString};
 use crate::{
     plumbing::{
         options::{
-            attributes, commit, commitgraph, config, credential, exclude, free, fsck, index, mailmap, merge, odb,
-            revision, tree, Args, Subcommands,
+            attributes, branch, commit, commitgraph, config, credential, exclude, free, fsck, index, mailmap, merge,
+            odb, revision, tag, tree, Args, Subcommands,
         },
         show_progress,
     },
@@ -509,6 +509,26 @@ pub fn main() -> Result<()> {
                 )
             },
         ),
+        Subcommands::Branch(platform) => match platform.cmd {
+            branch::Subcommands::List { all } => {
+                use core::repository::branch::list;
+
+                let kind = if all { list::Kind::All } else { list::Kind::Local };
+                let options = list::Options { kind };
+
+                prepare_and_run(
+                    "branch-list",
+                    trace,
+                    auto_verbose,
+                    progress,
+                    progress_keep_open,
+                    None,
+                    move |_progress, out, _err| {
+                        core::repository::branch::list(repository(Mode::Lenient)?, out, format, options)
+                    },
+                )
+            }
+        },
         #[cfg(feature = "gitoxide-core-tools-corpus")]
         Subcommands::Corpus(crate::plumbing::options::corpus::Platform { db, path, cmd }) => {
             let reverse_trace_lines = progress;
@@ -1148,7 +1168,12 @@ pub fn main() -> Result<()> {
             },
         ),
         Subcommands::Revision(cmd) => match cmd {
-            revision::Subcommands::List { spec, svg, limit } => prepare_and_run(
+            revision::Subcommands::List {
+                spec,
+                svg,
+                limit,
+                long_hashes,
+            } => prepare_and_run(
                 "revision-list",
                 trace,
                 auto_verbose,
@@ -1164,6 +1189,7 @@ pub fn main() -> Result<()> {
                             limit,
                             spec,
                             format,
+                            long_hashes,
                             text: svg.map_or(core::repository::revision::list::Format::Text, |path| {
                                 core::repository::revision::list::Format::Svg { path }
                             }),
@@ -1296,6 +1322,17 @@ pub fn main() -> Result<()> {
                         },
                     )
                 },
+            ),
+        },
+        Subcommands::Tag(platform) => match platform.cmds {
+            Some(tag::Subcommands::List) | None => prepare_and_run(
+                "tag-list",
+                trace,
+                auto_verbose,
+                progress,
+                progress_keep_open,
+                None,
+                move |_progress, out, _err| core::repository::tag::list(repository(Mode::Lenient)?, out, format),
             ),
         },
         Subcommands::Tree(cmd) => match cmd {
@@ -1591,6 +1628,7 @@ pub fn main() -> Result<()> {
                         range: gix::blame::BlameRanges::from_ranges(ranges),
                         since,
                         rewrites: Some(gix::diff::Rewrites::default()),
+                        debug_track_path: false,
                     },
                     out,
                     statistics.then_some(err),

@@ -5,13 +5,111 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.53.1 (2025-08-13)
+
+This release adjusts writes to lose ref files so they will contain newlines after the hash for compliance with Git.
+
+### Bug Fixes
+
+ - <csr-id-ba563b0e39ebc3ce635f399accd8a4be5210f816/> extend lifetime of iterators
+   Previously the iterators would return references with lifetimes that
+   were shorter than the actual lifetimes of the `gix::Reference`
+   themselves. This was dues to a footgun with `'_` (eliding the lifetime).
+   
+   When a function returns an elided lifetime, this lifetime usually is the
+   lifetime of the `&self` parameter, but sometimes it is the lifetime of
+   the type itself (e.g. `Iter<'_>`).
+   
+   I made the lifetimes explicit to ensure we were using the correct ones.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 12 commits contributed to the release over the course of 28 calendar days.
+ - 29 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Update changelogs prior to `gix-ref` release ([`5315180`](https://github.com/GitoxideLabs/gitoxide/commit/53151807ec82ce3fbe1838c0885a4f9b71b82f23))
+    - Merge pull request #2111 from handlerug/patch-ref-storage-newline ([`edcfdc2`](https://github.com/GitoxideLabs/gitoxide/commit/edcfdc2fe629a1b691c8f39c5b9e36d8254dea6f))
+    - Persist object refs on disk with a trailing newline ([`6c0cc71`](https://github.com/GitoxideLabs/gitoxide/commit/6c0cc7165609b056850f15ee464863dae1b99a97))
+    - Merge pull request #2105 from jalil-salame/fix-2103 ([`04a18f3`](https://github.com/GitoxideLabs/gitoxide/commit/04a18f3a4520dd6f49b5f87fe3782dd1cd1547f2))
+    - Extend lifetime of iterators ([`ba563b0`](https://github.com/GitoxideLabs/gitoxide/commit/ba563b0e39ebc3ce635f399accd8a4be5210f816))
+    - Merge pull request #2100 from GitoxideLabs/release ([`202bc6d`](https://github.com/GitoxideLabs/gitoxide/commit/202bc6da79854d1fb6bb32b9c6bb2a6f882c77f5))
+    - Release gix-actor v0.35.3, gix-path v0.10.20, gix-features v0.43.1, gix-object v0.50.1 ([`d64f257`](https://github.com/GitoxideLabs/gitoxide/commit/d64f257951754ea70b0179b83f76de957b712211))
+    - Merge pull request #2090 from GitoxideLabs/dependabot/cargo/cargo-f147714000 ([`473fe52`](https://github.com/GitoxideLabs/gitoxide/commit/473fe522e84569f77bf38294a412f0d13fa54d63))
+    - Bump the cargo group with 41 updates ([`428412c`](https://github.com/GitoxideLabs/gitoxide/commit/428412c9ff05caabb4f8714d5de769603e18a8f9))
+    - Merge pull request #2088 from GitoxideLabs/improvements ([`8892cb1`](https://github.com/GitoxideLabs/gitoxide/commit/8892cb18ccf4606df97181e9bc43461d1c71a28a))
+    - Bump gix-ref rust version to 1.74 for `std::io::Error::other` support. ([`88dc1c2`](https://github.com/GitoxideLabs/gitoxide/commit/88dc1c238c6b858f2ed32dae1dfab4f34a364f6d))
+    - Merge pull request #2075 from GitoxideLabs/improvements ([`784c046`](https://github.com/GitoxideLabs/gitoxide/commit/784c0465bf87011fe7dbf71a590d3f9e6c8696a8))
+</details>
+
+## 0.53.0 (2025-07-15)
+
+### New Features
+
+ - <csr-id-fdf5153d9fe5e7c059b5a9687b7041e16ba54683/> refs support pseudo refs
+ - <csr-id-f8b87f1ffb871ca3ce8c6ef6538c64780bd1b452/> add `Category::to_full_name()` to easily generate full names from short ones.
+ - <csr-id-c8a63ab4618d3a71176703a04ab69da02d850267/> add `file::Store::is_empty()`
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 19 commits contributed to the release over the course of 79 calendar days.
+ - 79 days passed between releases.
+ - 3 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Thanks Clippy
+
+<csr-read-only-do-not-edit/>
+
+[Clippy](https://github.com/rust-lang/rust-clippy) helped 1 time to make code idiomatic. 
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release gix-date v0.10.3, gix-actor v0.35.2, gix-trace v0.1.13, gix-path v0.10.19, gix-features v0.43.0, gix-hash v0.19.0, gix-hashtable v0.9.0, gix-object v0.50.0, gix-glob v0.21.0, gix-attributes v0.27.0, gix-command v0.6.2, gix-packetline-blocking v0.19.1, gix-filter v0.20.0, gix-fs v0.16.0, gix-commitgraph v0.29.0, gix-revwalk v0.21.0, gix-traverse v0.47.0, gix-worktree-stream v0.22.0, gix-archive v0.22.0, gix-tempfile v18.0.0, gix-lock v18.0.0, gix-index v0.41.0, gix-config-value v0.15.1, gix-pathspec v0.12.0, gix-ignore v0.16.0, gix-worktree v0.42.0, gix-diff v0.53.0, gix-blame v0.3.0, gix-ref v0.53.0, gix-sec v0.12.0, gix-config v0.46.0, gix-prompt v0.11.1, gix-url v0.32.0, gix-credentials v0.30.0, gix-discover v0.41.0, gix-dir v0.15.0, gix-mailmap v0.27.2, gix-revision v0.35.0, gix-merge v0.6.0, gix-negotiate v0.21.0, gix-pack v0.60.0, gix-odb v0.70.0, gix-refspec v0.31.0, gix-shallow v0.5.0, gix-packetline v0.19.1, gix-transport v0.48.0, gix-protocol v0.51.0, gix-status v0.20.0, gix-submodule v0.20.0, gix-worktree-state v0.20.0, gix v0.73.0, gix-fsck v0.12.0, gitoxide-core v0.48.0, gitoxide v0.45.0, safety bump 43 crates ([`5a919c4`](https://github.com/GitoxideLabs/gitoxide/commit/5a919c48393020d47c7034946108577dd213b80a))
+    - Update changelogs prior to release ([`65037b5`](https://github.com/GitoxideLabs/gitoxide/commit/65037b56918b90ac07454a815b0ed136df2fca3b))
+    - Merge pull request #2061 from orthros/pseudo-refs ([`60c29a5`](https://github.com/GitoxideLabs/gitoxide/commit/60c29a59302bfc9d0be7aab5dd3ef05e4ee8e3fa))
+    - Refactor ([`43f92b5`](https://github.com/GitoxideLabs/gitoxide/commit/43f92b5285af6696cd21f0e94f3bec568aef8468))
+    - Refs support pseudo refs ([`fdf5153`](https://github.com/GitoxideLabs/gitoxide/commit/fdf5153d9fe5e7c059b5a9687b7041e16ba54683))
+    - Adapt to changes in gix_features::walkdir_sorted_new ([`a2741da`](https://github.com/GitoxideLabs/gitoxide/commit/a2741da85fe04907f8773a99813e3802333b402d))
+    - Merge pull request #2041 from cruessler/add-blame-extraction ([`dd5f0a4`](https://github.com/GitoxideLabs/gitoxide/commit/dd5f0a4811bc738051f7af164b8d2815aaa23220))
+    - Thanks clippy ([`554ce13`](https://github.com/GitoxideLabs/gitoxide/commit/554ce134bc4b514b52a935f17f57f76ebf23ab97))
+    - Merge pull request #2036 from GitoxideLabs/improvements ([`249bf9a`](https://github.com/GitoxideLabs/gitoxide/commit/249bf9a2add29caa339c5f9783dd63f87a718c6e))
+    - Add `Category::to_full_name()` to easily generate full names from short ones. ([`f8b87f1`](https://github.com/GitoxideLabs/gitoxide/commit/f8b87f1ffb871ca3ce8c6ef6538c64780bd1b452))
+    - Merge pull request #2033 from GitoxideLabs/dependabot/cargo/cargo-b72232998d ([`f8d7c0a`](https://github.com/GitoxideLabs/gitoxide/commit/f8d7c0ad8fa7745c973c6b87e7eee70831300207))
+    - Bump the cargo group with 56 updates ([`151e3a5`](https://github.com/GitoxideLabs/gitoxide/commit/151e3a5cca06444eea4c6a362649e66c831673d6))
+    - Merge pull request #2016 from GitoxideLabs/improvements ([`7ae3797`](https://github.com/GitoxideLabs/gitoxide/commit/7ae3797f19cf2dd3bc3e02a6437643e5f50ed338))
+    - Add `file::Store::is_empty()` ([`c8a63ab`](https://github.com/GitoxideLabs/gitoxide/commit/c8a63ab4618d3a71176703a04ab69da02d850267))
+    - Merge pull request #2009 from GitoxideLabs/release-gix-index ([`c3f06ae`](https://github.com/GitoxideLabs/gitoxide/commit/c3f06ae424ab4e1918a364cabe8276297465a73a))
+    - Release gix-path v0.10.18, gix-date v0.10.2, gix-traverse v0.46.2, gix-index v0.40.1 ([`d2b4c44`](https://github.com/GitoxideLabs/gitoxide/commit/d2b4c44fcb2bf43e80d67532262631a5086f08de))
+    - Merge pull request #1977 from GitoxideLabs/dependabot/cargo/cargo-811d7b929d ([`800738a`](https://github.com/GitoxideLabs/gitoxide/commit/800738a37f3d33926a427edfa294423bbe3f2b66))
+    - Bump the cargo group with 12 updates ([`4408166`](https://github.com/GitoxideLabs/gitoxide/commit/4408166bf56197a67419277a4ef8feeba9060fee))
+    - Merge pull request #1971 from GitoxideLabs/new-release ([`8d4c4d1`](https://github.com/GitoxideLabs/gitoxide/commit/8d4c4d1e09f84c962c29d98a686c64228196ac13))
+</details>
+
 ## 0.52.1 (2025-04-26)
 
 ### Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 1 commit contributed to the release.
+ - 3 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -22,7 +120,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release gix-date v0.10.1, gix-utils v0.3.0, gix-actor v0.35.1, gix-validate v0.10.0, gix-path v0.10.17, gix-features v0.42.1, gix-hash v0.18.0, gix-hashtable v0.8.1, gix-object v0.49.1, gix-glob v0.20.0, gix-quote v0.6.0, gix-attributes v0.26.0, gix-command v0.6.0, gix-packetline-blocking v0.19.0, gix-filter v0.19.1, gix-fs v0.15.0, gix-commitgraph v0.28.0, gix-revwalk v0.20.1, gix-traverse v0.46.1, gix-worktree-stream v0.21.1, gix-archive v0.21.1, gix-tempfile v17.1.0, gix-lock v17.1.0, gix-index v0.40.0, gix-config-value v0.15.0, gix-pathspec v0.11.0, gix-ignore v0.15.0, gix-worktree v0.41.0, gix-diff v0.52.1, gix-blame v0.2.1, gix-ref v0.52.1, gix-sec v0.11.0, gix-config v0.45.1, gix-prompt v0.11.0, gix-url v0.31.0, gix-credentials v0.29.0, gix-discover v0.40.1, gix-dir v0.14.1, gix-mailmap v0.27.1, gix-revision v0.34.1, gix-merge v0.5.1, gix-negotiate v0.20.1, gix-pack v0.59.1, gix-odb v0.69.1, gix-refspec v0.30.1, gix-shallow v0.4.0, gix-packetline v0.19.0, gix-transport v0.47.0, gix-protocol v0.50.1, gix-status v0.19.1, gix-submodule v0.19.1, gix-worktree-state v0.19.0, gix v0.72.1, gix-fsck v0.11.1, gitoxide-core v0.47.1, gitoxide v0.44.0 ([`e104545`](https://github.com/GitoxideLabs/gitoxide/commit/e104545b78951ca882481d4a58f4425a8bc81c87))
     - Bump all prior pratch levels to majors ([`5f7f805`](https://github.com/GitoxideLabs/gitoxide/commit/5f7f80570e1a5522e76ea58cccbb957249a0dffe))
+    - Merge pull request #1969 from GitoxideLabs/new-release ([`631f07a`](https://github.com/GitoxideLabs/gitoxide/commit/631f07ad0c1cb93d9da42cf2c8499584fe91880a))
 </details>
 
 ## 0.52.0 (2025-04-25)

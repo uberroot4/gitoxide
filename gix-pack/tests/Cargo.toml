@@ -29,4 +29,4 @@ gix-object = { path = "../../gix-object" }
 gix-traverse = { path = "../../gix-traverse" }
 gix-hash = { path = "../../gix-hash" }
 [target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "wasi")))'.dependencies]
-memmap2 = "0.9.0"
+memmap2 = "0.9.7"

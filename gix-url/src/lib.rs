@@ -78,6 +78,13 @@ pub enum ArgumentSafety<'a> {
 ///
 /// Additionally there is support for [deserialization](Url::from_bytes()) and [serialization](Url::to_bstring()).
 ///
+/// # Mutability Warning
+///
+/// Due to the mutability of this type, it's possible that the URL serializes to something invalid
+/// when fields are modified directly. URLs should always be parsed to this type from string or byte
+/// parameters, but never be accepted as an instance of this type and then reconstructed, to maintain
+/// validity guarantees.
+///
 /// # Security Warning
 ///
 /// URLs may contain passwords and using standard [formatting](std::fmt::Display) will redact
@@ -93,13 +100,13 @@ pub struct Url {
     /// The URL scheme.
     pub scheme: Scheme,
     /// The user to impersonate on the remote.
-    user: Option<String>,
+    pub user: Option<String>,
     /// The password associated with a user.
-    password: Option<String>,
+    pub password: Option<String>,
     /// The host to which to connect. Localhost is implied if `None`.
-    host: Option<String>,
+    pub host: Option<String>,
     /// When serializing, use the alternative forms as it was parsed as such.
-    serialize_alternative_form: bool,
+    pub serialize_alternative_form: bool,
     /// The port to use when connecting to a host. If `None`, standard ports depending on `scheme` will be used.
     pub port: Option<u16>,
     /// The path portion of the URL, usually the location of the git repository.
@@ -315,11 +322,23 @@ fn percent_encode(s: &str) -> Cow<'_, str> {
 /// Serialization
 impl Url {
     /// Write this URL losslessly to `out`, ready to be parsed again.
-    pub fn write_to(&self, mut out: &mut dyn std::io::Write) -> std::io::Result<()> {
-        if !(self.serialize_alternative_form && (self.scheme == Scheme::File || self.scheme == Scheme::Ssh)) {
-            out.write_all(self.scheme.as_str().as_bytes())?;
-            out.write_all(b"://")?;
+    pub fn write_to(&self, out: &mut dyn std::io::Write) -> std::io::Result<()> {
+        // Since alternative form doesn't employ any escape syntax, password and
+        // port number cannot be encoded.
+        if self.serialize_alternative_form
+            && (self.scheme == Scheme::File || self.scheme == Scheme::Ssh)
+            && self.password.is_none()
+            && self.port.is_none()
+        {
+            self.write_alternative_form_to(out)
+        } else {
+            self.write_canonical_form_to(out)
         }
+    }
+
+    fn write_canonical_form_to(&self, out: &mut dyn std::io::Write) -> std::io::Result<()> {
+        out.write_all(self.scheme.as_str().as_bytes())?;
+        out.write_all(b"://")?;
         match (&self.user, &self.host) {
             (Some(user), Some(host)) => {
                 out.write_all(percent_encode(user).as_bytes())?;
@@ -334,12 +353,42 @@ impl Url {
                 out.write_all(host.as_bytes())?;
             }
             (None, None) => {}
-            (Some(_user), None) => unreachable!("BUG: should not be possible to have a user but no host"),
+            (Some(_user), None) => {
+                return Err(std::io::Error::other(
+                    "Invalid URL structure: user specified without host",
+                ));
+            }
         }
         if let Some(port) = &self.port {
-            write!(&mut out, ":{port}")?;
+            write!(out, ":{port}")?;
         }
-        if self.serialize_alternative_form && self.scheme == Scheme::Ssh {
+        out.write_all(&self.path)?;
+        Ok(())
+    }
+
+    fn write_alternative_form_to(&self, out: &mut dyn std::io::Write) -> std::io::Result<()> {
+        match (&self.user, &self.host) {
+            (Some(user), Some(host)) => {
+                out.write_all(user.as_bytes())?;
+                assert!(
+                    self.password.is_none(),
+                    "BUG: cannot serialize password in alternative form"
+                );
+                out.write_all(b"@")?;
+                out.write_all(host.as_bytes())?;
+            }
+            (None, Some(host)) => {
+                out.write_all(host.as_bytes())?;
+            }
+            (None, None) => {}
+            (Some(_user), None) => {
+                return Err(std::io::Error::other(
+                    "Invalid URL structure: user specified without host",
+                ));
+            }
+        }
+        assert!(self.port.is_none(), "BUG: cannot serialize port in alternative form");
+        if self.scheme == Scheme::Ssh {
             out.write_all(b":")?;
         }
         out.write_all(&self.path)?;

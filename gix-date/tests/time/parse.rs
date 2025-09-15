@@ -3,14 +3,26 @@ use std::time::SystemTime;
 use gix_date::Time;
 
 #[test]
-fn special_time_is_ok_for_now() {
-    assert_eq!(
-        gix_date::parse("1979-02-26 18:30:00", Some(SystemTime::now())).unwrap(),
-        Time {
-            seconds: 42,
-            offset: 1800,
-        }
+fn time_without_offset_is_not_parsed_yet() {
+    assert!(
+        gix_date::parse("1979-02-26 18:30:00", Some(SystemTime::now())).is_err(),
+        "This was a special time with special handling, but it is not  anymore"
     );
+}
+
+#[test]
+fn parse_header_is_not_too_lenient() {
+    let now = SystemTime::now();
+    for not_a_header_str in ["2005-04-07T22:13:09", "2005-04-07 22:13:09"] {
+        assert!(
+            gix_date::parse_header(not_a_header_str).is_none(),
+            "It's not timestamp-like, despite some leniency"
+        );
+        assert!(
+            gix_date::parse(not_a_header_str, Some(now)).is_err(),
+            "it misses the timezone offset, so can't be parsed"
+        );
+    }
 }
 
 #[test]
@@ -71,21 +83,26 @@ fn raw() -> gix_testtools::Result {
     );
 
     assert_eq!(
-        gix_date::parse("1313584730 +051800", None)?,
+        gix_date::parse("1313584730 +051500", None)?,
         Time {
             seconds: 1313584730,
-            offset: 19080,
+            offset: 18900,
         },
         "seconds for time-offsets work as well"
     );
 
     assert_eq!(
-        gix_date::parse("1313584730 +051842", None)?,
+        gix_date::parse("1313584730 -0230", None)?,
         Time {
             seconds: 1313584730,
-            offset: 19122,
+            offset: -150 * 60,
         },
     );
+
+    assert!(gix_date::parse("1313584730 +1500", None).is_err());
+    assert!(gix_date::parse("1313584730 +000001", None).is_err());
+    assert!(gix_date::parse("1313584730 +0001", None).is_err());
+    assert!(gix_date::parse("1313584730 +000100", None).is_err());
 
     let expected = Time {
         seconds: 1660874655,

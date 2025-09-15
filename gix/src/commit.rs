@@ -6,7 +6,7 @@ use std::convert::Infallible;
 /// An empty array of a type usable with the `gix::easy` API to help declaring no parents should be used
 pub const NO_PARENT_IDS: [gix_hash::ObjectId; 0] = [];
 
-/// The error returned by [`commit(…)`][crate::Repository::commit()].
+/// The error returned by [`commit(…)`](crate::Repository::commit()).
 #[derive(Debug, thiserror::Error)]
 #[allow(missing_docs)]
 pub enum Error {
@@ -122,7 +122,7 @@ pub mod describe {
                     .filter_map(Result::ok)
                     .filter_map(|mut r: crate::Reference<'_>| {
                         let target_id = r.target().try_id().map(ToOwned::to_owned);
-                        let peeled_id = r.peel_to_id_in_place().ok()?;
+                        let peeled_id = r.peel_to_id().ok()?;
                         let (prio, tag_time) = match target_id {
                             Some(target_id) if peeled_id != *target_id => {
                                 let tag = repo.find_object(target_id).ok()?.try_into_tag().ok()?;
@@ -202,7 +202,7 @@ pub mod describe {
             self
         }
 
-        /// Only consider the given amount of candidates, instead of the default of 10.
+        /// Only consider the given number of candidates, instead of the default of 10.
         pub fn max_candidates(mut self, candidates: usize) -> Self {
             self.max_candidates = candidates;
             self
